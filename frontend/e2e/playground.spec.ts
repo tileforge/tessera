@@ -94,6 +94,24 @@ test('explains coverage and copies the local preview through the real clipboard'
   await expect(preview).toHaveCount(0)
 })
 
+test('preserves the unchanged submitted snapshot in both zero-span regions after editing', async ({ page }) => {
+  const text = '🙂 東京\n  unchanged\ttext  '
+  await mockDetector(page)
+  await page.route('**/api/detect', (route) => route.fulfill({
+    json: { spans: [], layers_run: ['deterministic', 'ner'], version: 'test-version' },
+  }))
+  await page.goto('/')
+  await page.getByLabel('Text to inspect').fill(text)
+  await page.getByRole('button', { name: 'Analyze text' }).click()
+  const submitted = page.getByRole('region', { name: 'Submitted text' })
+  await expect(submitted).toBeVisible()
+  await page.getByLabel('Text to inspect').fill('Edited after submission')
+  expect(await submitted.locator('.highlighted-result').textContent()).toBe(text)
+  expect(await page.getByRole('region', { name: 'Pseudonymized preview' }).locator('.preview-text').textContent()).toBe(text)
+  await expect(submitted.getByText('No entities were detected. This does not prove the text contains no personal data.')).toBeVisible()
+  await expect(submitted.getByRole('mark')).toHaveCount(0)
+})
+
 test('uses the approved layer presentation and preserves visible mobile detail labels', async ({ page }) => {
   await mockDetector(page)
   await page.goto('/')

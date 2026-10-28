@@ -272,14 +272,24 @@ describe('local detector playground', () => {
     expect(screen.getByText('Detections will appear here after you analyze text.')).toBeVisible()
   })
 
-  it('does not render detection details for a successful zero-span response', async () => {
+  it('preserves a zero-span submitted snapshot in both regions after editing input without detection details', async () => {
     const user = userEvent.setup()
     renderApp()
 
-    await user.type(screen.getByLabelText(/Text to inspect/i), 'No detected entities')
+    const text = '🙂 東京\n  unchanged\ttext  '
+    const input = screen.getByLabelText(/Text to inspect/i)
+    await user.type(input, text)
     await user.click(screen.getByRole('button', { name: /Analyze text/i }))
 
     expect(await screen.findByText(/No entities were detected/i)).toBeVisible()
+    await user.clear(input)
+    await user.type(input, 'Edited after submission')
+    for (const name of ['Submitted text', 'Pseudonymized preview']) {
+      const region = screen.getByRole('region', { name })
+      expect(within(region).getByText('🙂 東京 unchanged text').textContent).toBe(text)
+      expect(within(region).queryByRole('mark')).not.toBeInTheDocument()
+    }
+    expect(input).toHaveValue('Edited after submission')
     expect(screen.queryByRole('table')).not.toBeInTheDocument()
   })
 
