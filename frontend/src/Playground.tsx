@@ -9,6 +9,7 @@ import { useI18n } from './i18n/context'
 import { errorMessage } from './i18n/errors'
 import type { Messages } from './i18n/messages'
 import { buildHighlightedSegments, InvalidDetectionResponseError } from './domain/detections'
+import { useTxtImport } from './files/useTxtImport'
 
 type AnalysisResult = {
   text: string
@@ -46,6 +47,7 @@ export function Playground() {
   const [result, setResult] = useState<AnalysisResult | null>(null)
   const [error, setError] = useState<Error | null>(null)
   const [inFlight, setInFlight] = useState(false)
+  const txtImport = useTxtImport(!inFlight && text.trim().length === 0, setText)
   const generation = useRef(0)
   const activeRequest = useRef<ActiveRequest | null>(null)
   const pendingAnalyses = useRef(new Map<number, PendingAnalysis>())
@@ -95,6 +97,7 @@ export function Playground() {
   })
 
   function analyze() {
+    txtImport.invalidate()
     if (inFlight || text.trim().length === 0) {
       return
     }
@@ -115,6 +118,7 @@ export function Playground() {
   }
 
   function clear() {
+    txtImport.invalidate()
     generation.current += 1
     setText('')
     setResult(null)
@@ -128,6 +132,11 @@ export function Playground() {
   }
 
   const scanStatus = result && resultScanStatus(result.response.layers_run, messages)
+
+  function editText(value: string) {
+    txtImport.invalidate()
+    setText(value)
+  }
 
   return (
     <main className="playground">
@@ -160,9 +169,10 @@ export function Playground() {
       <TextAnalyzer
         text={text}
         pending={inFlight}
-        onTextChange={setText}
+        onTextChange={editText}
         onAnalyze={analyze}
         onClear={clear}
+        txtImport={txtImport}
       />
       <section className="analysis-output">
         <div className="analysis-status" role="status" aria-live="polite" aria-atomic="true">
