@@ -191,11 +191,11 @@ textarea:focus-visible {
   opacity: 0.55;
 }
 
-.analysis-output > p {
+.analysis-status > p {
   margin: 0;
 }
 
-.analysis-output > .result-scan-status {
+.analysis-status > .result-scan-status {
   margin: 0 0 1rem;
   padding: 0.625rem 0.75rem;
   border: 1px solid #86efac;
@@ -205,7 +205,7 @@ textarea:focus-visible {
   font-weight: 700;
 }
 
-.analysis-output > .result-scan-status[data-state='limited'] {
+.analysis-status > .result-scan-status[data-state='limited'] {
   border-color: #fcd34d;
   background: #fffbeb;
   color: #92400e;
@@ -545,13 +545,13 @@ textarea:focus-visible {
     color: #fecaca;
   }
 
-  .analysis-output > .result-scan-status {
+  .analysis-status > .result-scan-status {
     border-color: #166534;
     background: #142c20;
     color: #bbf7d0;
   }
 
-  .analysis-output > .result-scan-status[data-state='limited'] {
+  .analysis-status > .result-scan-status[data-state='limited'] {
     border-color: #a16207;
     background: #30250f;
     color: #fde68a;

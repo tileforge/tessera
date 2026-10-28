@@ -153,15 +153,15 @@ export function Playground() {
         onAnalyze={analyze}
         onClear={clear}
       />
-      <section className="analysis-output" aria-live="polite" aria-atomic="true">
-        {inFlight && <p>Analyzing text…</p>}
-        {!inFlight && !result && !error && <p>Detections will appear here after you analyze text.</p>}
-        {result && (
-          <>
+      <section className="analysis-output">
+        <div className="analysis-status" role="status" aria-live="polite" aria-atomic="true">
+          {inFlight && <p>Analyzing text…</p>}
+          {!inFlight && !result && !error && <p>Detections will appear here after you analyze text.</p>}
+          {result && (
             <p className="result-scan-status" data-state={scanStatus?.state}>{scanStatus?.message}</p>
-            <DetectionResults text={result.text} spans={result.response.spans} />
-          </>
-        )}
+          )}
+        </div>
+        {result && <DetectionResults text={result.text} spans={result.response.spans} />}
       </section>
       {error && <p role="alert">{error.message}</p>}
     </main>

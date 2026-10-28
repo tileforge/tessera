@@ -181,6 +181,39 @@ describe('local detector playground', () => {
     expect(screen.getAllByRole('row').every((row) => !row.hasAttribute('aria-current'))).toBe(true)
   })
 
+  it('announces analysis status without wrapping interactive findings in the atomic live region', async () => {
+    server.use(http.post('/api/detect', async () => {
+      await delay(100)
+      return HttpResponse.json(personResponse)
+    }))
+    const user = userEvent.setup()
+    renderApp()
+    await user.type(screen.getByLabelText(/Text to inspect/i), 'Martina Weber')
+    await user.click(screen.getByRole('button', { name: /Analyze text/i }))
+    const liveStatus = (await screen.findByText('Analyzing text…')).closest('[aria-live]')!
+    expect(liveStatus).toHaveAttribute('aria-live', 'polite')
+    expect(liveStatus).toHaveAttribute('aria-atomic', 'true')
+    const toggle = await screen.findByRole('button', { name: 'Show technical details' })
+    expect(liveStatus).toHaveTextContent('Full scan: deterministic + NER')
+    expect(liveStatus).not.toContainElement(toggle)
+    expect(liveStatus).not.toContainElement(screen.getByRole('region', { name: 'Finding summary' }))
+    expect(liveStatus).not.toContainElement(screen.getByRole('table'))
+    const highlight = screen.getByRole('button', { name: /Show details for Martina Weber/ })
+    expect(highlight.closest('[aria-live]')).toBeNull()
+    toggle.focus()
+    await user.keyboard('{Enter}')
+    expect(toggle).toHaveAccessibleName('Hide technical details')
+    expect(screen.getByRole('columnheader', { name: 'Recognizer' })).toBeVisible()
+    expect(liveStatus).toHaveTextContent('Full scan: deterministic + NER')
+    highlight.focus()
+    await user.keyboard(' ')
+    expect(document.activeElement).toBe(screen.getAllByRole('row')[1])
+    await user.click(screen.getByRole('button', { name: 'Clear' }))
+    expect(liveStatus).toHaveTextContent('Detections will appear here after you analyze text.')
+    expect(screen.queryByRole('table')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /technical details/ })).not.toBeInTheDocument()
+  })
+
   it('analyzes a non-empty snapshot while omitting layers', async () => {
     let received: unknown
     server.use(
