@@ -97,7 +97,7 @@ for (const scheme of ['light', 'dark'] as const) {
     await page.getByRole('combobox', { name: 'Язык / Language' }).selectOption('ru')
     await expect(page.getByRole('alert')).toHaveText('Выберите файл .txt.')
     await choose(page, privateName, Buffer.from([0xc3, 0x28]), 'Открыть TXT')
-    await expect(page.getByRole('alert')).toHaveText('TXT должен быть в корректной кодировке UTF-8 без символов NUL.')
+    await expect(page.getByRole('alert')).toHaveText('Сохраните файл как обычный текст в UTF-8 и попробуйте снова.')
     await expect(page.getByLabel('Текст для проверки')).toHaveValue('')
     await expect(page.locator('body')).not.toContainText(privateName)
     await expect(page.locator('body')).not.toContainText('private.csv')

@@ -83,12 +83,12 @@ describe('local TXT import', () => {
     ['zero bytes', file(''), 'TXT must contain non-whitespace text.'],
     ['whitespace', file(' \r\n\t '), 'TXT must contain non-whitespace text.'],
     ['BOM only', file(new Uint8Array([0xef, 0xbb, 0xbf])), 'TXT must contain non-whitespace text.'],
-    ['invalid UTF-8', file(new Uint8Array([0xc3, 0x28])), 'TXT must use valid UTF-8 without NUL characters.'],
-    ['truncated UTF-8', file(new Uint8Array([0xf0, 0x9f, 0x99])), 'TXT must use valid UTF-8 without NUL characters.'],
-    ['overlong UTF-8', file(new Uint8Array([0xc0, 0xaf])), 'TXT must use valid UTF-8 without NUL characters.'],
-    ['NUL within text', file('valid\0text'), 'TXT must use valid UTF-8 without NUL characters.'],
-    ['UTF-16 BOM', file(new Uint8Array([0xff, 0xfe, 0x41, 0])), 'TXT must use valid UTF-8 without NUL characters.'],
-    ['UTF-16 without BOM', file(new Uint8Array([0x41, 0])), 'TXT must use valid UTF-8 without NUL characters.'],
+    ['invalid UTF-8', file(new Uint8Array([0xc3, 0x28])), 'Save the file as UTF-8 plain text and try again.'],
+    ['truncated UTF-8', file(new Uint8Array([0xf0, 0x9f, 0x99])), 'Save the file as UTF-8 plain text and try again.'],
+    ['overlong UTF-8', file(new Uint8Array([0xc0, 0xaf])), 'Save the file as UTF-8 plain text and try again.'],
+    ['NUL within text', file('valid\0text'), 'Save the file as UTF-8 plain text and try again.'],
+    ['UTF-16 BOM', file(new Uint8Array([0xff, 0xfe, 0x41, 0])), 'Save the file as UTF-8 plain text and try again.'],
+    ['UTF-16 without BOM', file(new Uint8Array([0x41, 0])), 'Save the file as UTF-8 plain text and try again.'],
   ])('rejects %s safely and permits retry', async (_label, selected, feedback) => {
     const read = vi.spyOn(FileReader.prototype, 'readAsArrayBuffer')
     render(<App />)
