@@ -66,9 +66,12 @@ describe('HighlightedResult', () => {
     expect(screen.queryByRole('mark')).not.toBeInTheDocument()
   })
 
-  it('explains the limitation when no spans are returned', () => {
-    render(<HighlightedResult text="No names here." spans={[]} />)
+  it('preserves the original Unicode and whitespace with the limitation when no spans are returned', () => {
+    const text = '🙂 東京\n  unchanged\ttext  '
+    render(<HighlightedResult text={text} spans={[]} />)
 
+    expect(screen.getByText('🙂 東京 unchanged text').textContent).toBe(text)
+    expect(screen.queryByRole('mark')).not.toBeInTheDocument()
     expect(screen.getByText('No entities were detected. This does not prove the text contains no personal data.'))
       .toBeVisible()
   })

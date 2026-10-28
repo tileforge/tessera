@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import { QueryClient } from '@tanstack/react-query'
 import userEvent from '@testing-library/user-event'
 import { delay, http, HttpResponse } from 'msw'
@@ -60,6 +60,61 @@ describe('local detector playground', () => {
 
     expect(await screen.findByText('Model detected')).toBeVisible()
     expect(received).toEqual({ text: 'Martina Weber' })
+  })
+
+  it('keeps coverage visible before analysis and after Clear', async () => {
+    const user = userEvent.setup()
+    renderApp()
+    const coverage = screen.getByRole('note', { name: 'Detection coverage' })
+    expect(coverage).toHaveTextContent(/emails.*financial.*tax/i)
+    expect(coverage).toHaveTextContent(/NER.*names.*locations.*organizations.*sensitive/i)
+    expect(coverage).toHaveTextContent(/capabilities.*guarantees/i)
+    expect(coverage).toHaveTextContent(/Phone numbers are not currently supported/i)
+    await user.click(screen.getByRole('button', { name: /Clear/i }))
+    expect(coverage).toBeVisible()
+  })
+
+  it('retains the submitted preview while editing and removes it immediately for a new analysis', async () => {
+    let calls = 0
+    server.use(http.post('/api/detect', async () => {
+      calls += 1
+      if (calls > 1) await delay(100)
+      return HttpResponse.json(calls === 1 ? personResponse : emptyResponse)
+    }))
+    const user = userEvent.setup()
+    renderApp()
+    const input = screen.getByLabelText(/Text to inspect/i)
+    await user.type(input, 'Martina Weber')
+    await user.click(screen.getByRole('button', { name: /Analyze text/i }))
+    const preview = await screen.findByRole('region', { name: 'Pseudonymized preview' })
+    expect(within(preview).getByText('[PERSON_1]')).toBeVisible()
+    await user.clear(input)
+    await user.type(input, 'Edited input')
+    expect(within(preview).getByText('[PERSON_1]')).toBeVisible()
+    await user.click(screen.getByRole('button', { name: /Analyze text/i }))
+    expect(screen.queryByRole('region', { name: 'Pseudonymized preview' })).not.toBeInTheDocument()
+    expect(await screen.findByText(/No replacements were made/i)).toBeVisible()
+    expect(within(screen.getByRole('region', { name: 'Pseudonymized preview' })).getByText('Edited input')).toBeVisible()
+  })
+
+  it.each(['resolve', 'reject'])('does not restore late clipboard %s after Clear', async (outcome) => {
+    server.use(http.post('/api/detect', () => HttpResponse.json(personResponse)))
+    const user = userEvent.setup()
+    let finish!: () => void
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: () => new Promise<void>((resolve, reject) => {
+        finish = () => outcome === 'resolve' ? resolve() : reject(new Error('private detail'))
+      }) },
+    })
+    renderApp()
+    await user.type(screen.getByLabelText(/Text to inspect/i), 'Martina Weber')
+    await user.click(screen.getByRole('button', { name: /Analyze text/i }))
+    await user.click(await screen.findByRole('button', { name: 'Copy preview' }))
+    await user.click(screen.getByRole('button', { name: /Clear/i }))
+    await act(async () => finish())
+    expect(screen.queryByRole('region', { name: 'Pseudonymized preview' })).not.toBeInTheDocument()
+    expect(screen.queryByText(/Preview copied|Could not copy|private detail/)).not.toBeInTheDocument()
   })
 
   it('keeps Analyze disabled for whitespace-only text', async () => {
@@ -217,14 +272,24 @@ describe('local detector playground', () => {
     expect(screen.getByText('Detections will appear here after you analyze text.')).toBeVisible()
   })
 
-  it('does not render detection details for a successful zero-span response', async () => {
+  it('preserves a zero-span submitted snapshot in both regions after editing input without detection details', async () => {
     const user = userEvent.setup()
     renderApp()
 
-    await user.type(screen.getByLabelText(/Text to inspect/i), 'No detected entities')
+    const text = '🙂 東京\n  unchanged\ttext  '
+    const input = screen.getByLabelText(/Text to inspect/i)
+    await user.type(input, text)
     await user.click(screen.getByRole('button', { name: /Analyze text/i }))
 
     expect(await screen.findByText(/No entities were detected/i)).toBeVisible()
+    await user.clear(input)
+    await user.type(input, 'Edited after submission')
+    for (const name of ['Submitted text', 'Pseudonymized preview']) {
+      const region = screen.getByRole('region', { name })
+      expect(within(region).getByText('🙂 東京 unchanged text').textContent).toBe(text)
+      expect(within(region).queryByRole('mark')).not.toBeInTheDocument()
+    }
+    expect(input).toHaveValue('Edited after submission')
     expect(screen.queryByRole('table')).not.toBeInTheDocument()
   })
 

@@ -39,9 +39,10 @@ export function HighlightedResult({ text, spans }: HighlightedResultProps) {
 
   if (spans.length === 0) {
     return (
-      <p className="highlighted-result">
-        No entities were detected. This does not prove the text contains no personal data.
-      </p>
+      <>
+        <p className="highlighted-result">{text}</p>
+        <p>No entities were detected. This does not prove the text contains no personal data.</p>
+      </>
     )
   }
 
