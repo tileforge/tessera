@@ -8,6 +8,8 @@ import {
 type HighlightedResultProps = {
   text: string
   spans: DetectorSpan[]
+  selectedSpan?: Pick<DetectorSpan, 'start' | 'end'> | null
+  onSelectSpan?: (span: DetectorSpan) => void
 }
 
 function layerLabel(layer: DetectionLayer): string {
@@ -25,7 +27,7 @@ function layerLabel(layer: DetectionLayer): string {
   }
 }
 
-export function HighlightedResult({ text, spans }: HighlightedResultProps) {
+export function HighlightedResult({ text, spans, selectedSpan, onSelectSpan }: HighlightedResultProps) {
   let segments
 
   try {
@@ -56,7 +58,17 @@ export function HighlightedResult({ text, spans }: HighlightedResultProps) {
         const label = layerLabel(segment.layer)
         return (
           <mark key={index} data-layer={segment.layer} aria-label={`${segment.text} — ${label}`}>
-            {segment.text}
+            {onSelectSpan ? (
+              <button
+                type="button"
+                className="finding-action"
+                aria-label={`Show details for ${segment.text} — ${label}`}
+                aria-pressed={selectedSpan?.start === segment.span.start && selectedSpan?.end === segment.span.end}
+                onClick={() => onSelectSpan(segment.span)}
+              >
+                {segment.text}
+              </button>
+            ) : segment.text}
           </mark>
         )
       })}

@@ -48,6 +48,14 @@ pseudonymized preview computed locally from the accepted detector spans. Only
 detected values are replaced; undetected personal data can remain. With no
 spans, the preview is unchanged and says no replacements were made.
 
+The finding summary counts detected occurrences by entity type, including repeated
+values. Select a submitted-text highlight with a click, Enter or Space to focus
+its detail row. Fragment, entity type, evidence layer and confidence are visible
+by default; `Show technical details` reveals tier, recognizer and context.
+Selection and technical disclosure stay with the submitted snapshot while editing
+and reset on Clear or a new analysis. A count of zero does not prove that no
+personal data is present.
+
 Replacement tokens use `[TYPE_N]`, numbered independently by type in text order.
 The same exact value and type reuse a token within one result, and numbering
 restarts for each analysis. Tokens already present literally in the submitted

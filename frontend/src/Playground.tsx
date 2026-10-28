@@ -2,10 +2,8 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { useRef, useState } from 'react'
 
 import { detectText, getHealth, type DetectResponse } from './api/detector'
-import { DetectionDetails } from './components/DetectionDetails'
+import { DetectionResults } from './components/DetectionResults'
 import { HealthStatus } from './components/HealthStatus'
-import { HighlightedResult } from './components/HighlightedResult'
-import { PseudonymizedPreview } from './components/PseudonymizedPreview'
 import { TextAnalyzer } from './components/TextAnalyzer'
 import { buildHighlightedSegments, InvalidDetectionResponseError } from './domain/detections'
 
@@ -161,16 +159,7 @@ export function Playground() {
         {result && (
           <>
             <p className="result-scan-status" data-state={scanStatus?.state}>{scanStatus?.message}</p>
-            <div className="result-previews">
-              <section className="submitted-panel" aria-label="Submitted text">
-                <h2>Submitted text</h2>
-                <HighlightedResult text={result.text} spans={result.response.spans} />
-              </section>
-              <PseudonymizedPreview text={result.text} spans={result.response.spans} />
-            </div>
-            {result.response.spans.length > 0 && (
-              <DetectionDetails text={result.text} spans={result.response.spans} />
-            )}
+            <DetectionResults text={result.text} spans={result.response.spans} />
           </>
         )}
       </section>
