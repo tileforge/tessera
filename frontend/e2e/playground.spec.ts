@@ -60,7 +60,7 @@ test('analyzes and clears text without persisting it', async ({ page }, testInfo
   await page.goto('/')
   await page.getByLabel('Text to inspect').fill(inspectedText)
   await page.getByRole('button', { name: 'Analyze text' }).click()
-  await expect(page.getByText('Model detected').first()).toBeVisible()
+  await expect(page.getByRole('table').getByText('Model detected').first()).toBeVisible()
   expect(page.url()).not.toContain('Martina')
   expect(await page.evaluate(() => ({ ...localStorage }))).toEqual({})
   expect(await page.evaluate(() => ({ ...sessionStorage }))).toEqual({})
@@ -125,7 +125,7 @@ test('uses the approved layer presentation and preserves visible mobile detail l
   const card = page.locator('mark[aria-label="4111 — Checksum verified"]')
   await expect(card).toBeVisible()
   await expect(card).toHaveCSS('background-color', 'rgb(220, 252, 231)')
-  await expect(page.getByText('Checksum verified').first()).toBeVisible()
+  await expect(page.getByRole('table').getByText('Checksum verified').first()).toBeVisible()
 
   await page.getByRole('button', { name: 'Show technical details' }).click()
 

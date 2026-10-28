@@ -69,7 +69,8 @@ textarea:focus-visible {
   font-size: 0.875rem;
 }
 
-.language-control select {
+.language-control select,
+.finding-filters select {
   max-width: 100%;
   min-height: 2.75rem;
   padding: 0.5rem;
@@ -416,13 +417,53 @@ textarea:focus-visible {
   text-underline-offset: 0.18em;
 }
 
+.finding-filters {
+  min-width: 0;
+  margin: 1.5rem 0 0;
+  padding: 1rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.75rem;
+}
+
+.finding-filters legend {
+  padding: 0 0.25rem;
+  font-weight: 700;
+}
+
+.finding-filters__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+}
+
+.finding-filters label {
+  display: flex;
+  flex: 1 1 12rem;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.finding-filters select {
+  width: 100%;
+  min-width: 0;
+}
+
+.filter-note,
+.filter-count {
+  margin: 0.75rem 0 0;
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
 .detection-details-panel {
   margin-top: 1.5rem;
 }
 
+.finding-filters button,
 .technical-toggle {
   min-height: 2.75rem;
-  margin-bottom: 1rem;
   padding: 0.625rem 1rem;
   border: 1px solid #b8c2d0;
   border-radius: 0.625rem;
@@ -432,6 +473,11 @@ textarea:focus-visible {
   font-weight: 700;
 }
 
+.technical-toggle {
+  margin-bottom: 1rem;
+}
+
+.finding-filters button:hover,
 .technical-toggle:hover {
   background: #f1f5f9;
 }
@@ -554,6 +600,9 @@ textarea:focus-visible {
     color: #aab6ca;
   }
 
+  .finding-filters,
+  .finding-filters select,
+  .finding-filters button,
   .language-control select,
   .health-status,
   .technical-toggle,
@@ -633,6 +682,7 @@ textarea:focus-visible {
     color: #94a3b8;
   }
 
+  .finding-filters button:hover,
   .technical-toggle:hover,
   .analyzer-panel button + button:hover:not(:disabled) {
     background: #24324a;

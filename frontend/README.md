@@ -68,9 +68,17 @@ The finding summary counts detected occurrences by entity type, including repeat
 values. Select a submitted-text highlight with a click, Enter or Space to focus
 its detail row. Fragment, entity type, evidence layer and confidence are visible
 by default; `Show technical details` reveals tier, recognizer and context.
-Selection and technical disclosure stay with the submitted snapshot while editing
-and reset on Clear or a new analysis. A count of zero does not prove that no
-personal data is present.
+Type and detection-method filters combine with AND and change only the details
+table. The shown/total count and scope note distinguish no matching rows from no
+detections. Summary counts, highlights, the complete preview and copied text always
+include every accepted finding. Reset filters restores all rows. Selecting a hidden
+highlight resets both filters and focuses its exact detail row; selecting a visible
+highlight keeps the filters.
+
+Changing or resetting filters clears the selected finding and preserves technical
+disclosure. Filters and technical disclosure stay with the submitted snapshot while
+editing or switching languages and reset on Clear or a new analysis. A count of
+zero does not prove that no personal data is present.
 
 Replacement tokens use `[TYPE_N]`, numbered independently by type in text order.
 The same exact value and type reuse a token within one result, and numbering
