@@ -5,6 +5,7 @@ import { detectText, getHealth, type DetectResponse } from './api/detector'
 import { DetectionDetails } from './components/DetectionDetails'
 import { HealthStatus } from './components/HealthStatus'
 import { HighlightedResult } from './components/HighlightedResult'
+import { PseudonymizedPreview } from './components/PseudonymizedPreview'
 import { TextAnalyzer } from './components/TextAnalyzer'
 import { buildHighlightedSegments, InvalidDetectionResponseError } from './domain/detections'
 
@@ -142,6 +143,11 @@ export function Playground() {
       <p className="playground__intro">
         Inspect local detector findings without saving the text you provide.
       </p>
+      <p className="coverage-note" role="note" aria-label="Detection coverage">
+        Catalog rules cover emails and supported financial and tax identifiers. NER can detect names,
+        locations, organizations and sensitive categories when it runs. These are capabilities, not
+        guarantees. Phone numbers are not currently supported.
+      </p>
       <TextAnalyzer
         text={text}
         pending={inFlight}
@@ -155,7 +161,13 @@ export function Playground() {
         {result && (
           <>
             <p className="result-scan-status" data-state={scanStatus?.state}>{scanStatus?.message}</p>
-            <HighlightedResult text={result.text} spans={result.response.spans} />
+            <div className="result-previews">
+              <section className="submitted-panel" aria-label="Submitted text">
+                <h2>Submitted text</h2>
+                <HighlightedResult text={result.text} spans={result.response.spans} />
+              </section>
+              <PseudonymizedPreview text={result.text} spans={result.response.spans} />
+            </div>
             {result.response.spans.length > 0 && (
               <DetectionDetails text={result.text} spans={result.response.spans} />
             )}

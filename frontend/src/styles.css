@@ -75,6 +75,15 @@ textarea:focus-visible {
   line-height: 1.55;
 }
 
+.coverage-note {
+  margin: 0 0 1.25rem;
+  padding: 0.75rem 1rem;
+  border-left: 3px solid #94a3b8;
+  color: #526075;
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
 .health-status {
   flex: 0 1 auto;
   margin: 0;
@@ -149,7 +158,8 @@ textarea:focus-visible {
   margin-top: 1rem;
 }
 
-.analyzer-panel button {
+.analyzer-panel button,
+.preview-panel button {
   min-height: 2.75rem;
   padding: 0.625rem 1rem;
   border: 1px solid #175cd3;
@@ -160,7 +170,8 @@ textarea:focus-visible {
   font-weight: 700;
 }
 
-.analyzer-panel button:hover:not(:disabled) {
+.analyzer-panel button:hover:not(:disabled),
+.preview-panel button:hover:not(:disabled) {
   background: #1d4ed8;
 }
 
@@ -174,7 +185,8 @@ textarea:focus-visible {
   background: #f1f5f9;
 }
 
-.analyzer-panel button:disabled {
+.analyzer-panel button:disabled,
+.preview-panel button:disabled {
   cursor: not-allowed;
   opacity: 0.55;
 }
@@ -202,6 +214,62 @@ textarea:focus-visible {
 .analysis-output > p + table,
 .analysis-output > table {
   margin-top: 1.25rem;
+}
+
+.result-previews {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.submitted-panel,
+.preview-panel {
+  min-width: 0;
+}
+
+.submitted-panel h2,
+.preview-panel h2 {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.preview-panel {
+  padding: 1rem;
+  border: 1px solid #dbe2ea;
+  border-radius: 0.75rem;
+  background: #f8fafc;
+}
+
+.preview-panel__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.preview-note,
+.copy-status {
+  margin: 0.75rem 0 0;
+  color: #526075;
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.copy-status:empty {
+  margin: 0;
+}
+
+.preview-text {
+  margin: 1rem 0;
+  color: #24324a;
+  font-size: 1.0625rem;
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  user-select: text;
 }
 
 .highlighted-result {
@@ -303,6 +371,10 @@ textarea:focus-visible {
     flex: 1 1 8rem;
   }
 
+  .result-previews {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .detection-details,
   .detection-details tbody,
   .detection-details tr,
@@ -359,6 +431,9 @@ textarea:focus-visible {
   }
 
   .playground__intro,
+  .coverage-note,
+  .preview-note,
+  .copy-status,
   .detection-details th,
   .detection-details td::before {
     color: #aab6ca;
@@ -367,6 +442,7 @@ textarea:focus-visible {
   .health-status,
   .analyzer-panel,
   .analysis-output,
+  .preview-panel,
   .analyzer-panel textarea,
   .analyzer-panel button + button {
     border-color: #334155;
@@ -406,6 +482,7 @@ textarea:focus-visible {
 
   .analyzer-panel label,
   .highlighted-result,
+  .preview-text,
   .detection-details,
   .detection-details caption {
     color: #e5e7eb;

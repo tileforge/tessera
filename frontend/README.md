@@ -41,6 +41,32 @@ not persisted by the frontend. Keep the detector local and do not point
 `TESSERA_DETECTOR_URL` at an untrusted remote detector: that would send pasted
 personal data outside the intended local privacy boundary.
 
+## Local preview and detection coverage
+
+After analysis, the playground shows the submitted snapshot and a selectable
+pseudonymized preview computed locally from the accepted detector spans. Only
+detected values are replaced; undetected personal data can remain. With no
+spans, the preview is unchanged and says no replacements were made.
+
+Replacement tokens use `[TYPE_N]`, numbered independently by type in text order.
+The same exact value and type reuse a token within one result, and numbering
+restarts for each analysis. Tokens already present literally in the submitted
+text are skipped. Supported current catalog types retain their names;
+unsupported or unsafe labels use `ENTITY`. Unicode code-point offsets and
+untouched whitespace are preserved; invalid spans produce no preview.
+
+`Copy preview` writes exactly the transformed text through the Clipboard API
+only when clicked. If copying is unavailable or denied, select the preview
+text to copy manually. Editing the input preserves the submitted result;
+Clear or another analysis removes it and its copy feedback. The frontend
+does not persist replacement maps or copy automatically.
+
+Catalog rules cover emails and supported financial and tax identifiers. NER
+can detect names, locations, organizations and sensitive categories when it
+runs. These are capabilities, not guarantees; phone numbers are not currently
+supported. This preview does not establish full anonymization or reproduce
+gateway session semantics.
+
 The root `docker-compose.yml` does not publish detector port `8000`; only the
 gateway is exposed to the host. The frontend playground therefore uses the
 direct local detector command above (or another explicitly local detector),

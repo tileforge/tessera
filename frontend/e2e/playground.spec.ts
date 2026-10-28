@@ -55,7 +55,7 @@ async function mockDetector(page: Page) {
   })
 }
 
-test('analyzes and clears text without persisting it', async ({ page }) => {
+test('analyzes and clears text without persisting it', async ({ page }, testInfo) => {
   await mockDetector(page)
   await page.goto('/')
   await page.getByLabel('Text to inspect').fill(inspectedText)
@@ -64,8 +64,34 @@ test('analyzes and clears text without persisting it', async ({ page }) => {
   expect(page.url()).not.toContain('Martina')
   expect(await page.evaluate(() => ({ ...localStorage }))).toEqual({})
   expect(await page.evaluate(() => ({ ...sessionStorage }))).toEqual({})
+  await expect(page.getByRole('region', { name: 'Pseudonymized preview' })).toBeVisible()
+  await page.screenshot({ path: testInfo.outputPath('preview.png'), fullPage: true })
   await page.getByRole('button', { name: 'Clear' }).click()
   await expect(page.getByText('Martina', { exact: true })).toHaveCount(0)
+  await expect(page.getByRole('region', { name: 'Pseudonymized preview' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Copy preview' })).toHaveCount(0)
+})
+
+test('explains coverage and copies the local preview through the real clipboard', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+  await mockDetector(page)
+  await page.goto('/')
+  const coverage = page.getByRole('note', { name: 'Detection coverage' })
+  await expect(coverage).toContainText('Phone numbers are not currently supported.')
+  await page.evaluate(() => navigator.clipboard.writeText('clipboard unchanged'))
+  await page.getByLabel('Text to inspect').fill(inspectedText)
+  await page.getByRole('button', { name: 'Analyze text' }).click()
+  const preview = page.getByRole('region', { name: 'Pseudonymized preview' })
+  await expect(preview).toBeVisible()
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('clipboard unchanged')
+  await expect(preview).toContainText('Only detected values are replaced; undetected personal data can remain.')
+  await page.getByRole('button', { name: 'Copy preview' }).click()
+  await expect(preview.getByRole('status')).toHaveText('Preview copied.')
+  expect(await page.evaluate(() => navigator.clipboard.readText()))
+    .toBe('🙂 [PERSON_1] in [LOCATION_1] • [CREDIT_CARD_1] [EMAIL_1]')
+  await page.getByRole('button', { name: 'Clear' }).click()
+  await expect(coverage).toBeVisible()
+  await expect(preview).toHaveCount(0)
 })
 
 test('uses the approved layer presentation and preserves visible mobile detail labels', async ({ page }) => {
@@ -158,5 +184,13 @@ test('preserves submitted whitespace and wraps an unbroken value at a narrow wid
   await expect(result).toContainText(text)
   await expect(result).toHaveCSS('white-space', 'pre-wrap')
   await expect(result).toHaveCSS('overflow-wrap', 'anywhere')
+  const preview = page.locator('.preview-text')
+  await expect(preview).toHaveText(`[ENTITY_1]\nLine two  ${'x'.repeat(400)}`, { useInnerText: false })
+  await expect(preview).toHaveCSS('white-space', 'pre-wrap')
+  await expect(preview).toHaveCSS('overflow-wrap', 'anywhere')
+  await expect(preview).toHaveCSS('user-select', 'text')
+  const submittedBox = await page.getByRole('region', { name: 'Submitted text' }).boundingBox()
+  const previewBox = await page.getByRole('region', { name: 'Pseudonymized preview' }).boundingBox()
+  expect(previewBox!.y).toBeGreaterThanOrEqual(submittedBox!.y + submittedBox!.height)
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
 })
