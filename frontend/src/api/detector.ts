@@ -6,14 +6,28 @@ export type DetectResponse = paths['/detect']['post']['responses'][200]['content
 export type DetectorSpan = DetectResponse['spans'][number]
 export type DetectorErrorDetail = paths['/detect']['post']['responses'][503]['content']['application/json']
 
-const requestFailedMessage = 'Detector request failed.'
-const invalidResponseMessage = 'Detector returned an invalid response.'
+const applicationMessages = {
+  requestFailed: 'Detector request failed.',
+  invalidResponse: 'Detector returned an invalid response.',
+}
+const applicationFailures = new WeakMap<DetectorApiError, keyof typeof applicationMessages>()
 
 export class DetectorApiError extends Error {
   constructor(message: string) {
     super(message)
     this.name = 'DetectorApiError'
   }
+}
+
+/** App failure provenance without changing the public error constructor or messages. */
+export function getDetectorFailureKind(error: DetectorApiError) {
+  return applicationFailures.get(error)
+}
+
+function applicationError(kind: keyof typeof applicationMessages): DetectorApiError {
+  const error = new DetectorApiError(applicationMessages[kind])
+  applicationFailures.set(error, kind)
+  return error
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -82,17 +96,17 @@ function normalizeDetectResponse(response: DetectResponse): DetectResponse {
   }
 }
 
-async function failureMessage(response: Response): Promise<string> {
+async function requestFailure(response: Response): Promise<DetectorApiError> {
   try {
     const value: unknown = await response.json()
     if (isDetectorErrorDetail(value) && value.detail.trim() !== '') {
-      return value.detail
+      return new DetectorApiError(value.detail)
     }
   } catch {
     // A server failure without the documented JSON detail uses fixed safe copy.
   }
 
-  return requestFailedMessage
+  return applicationError('requestFailed')
 }
 
 async function requestJson<T>(
@@ -103,20 +117,20 @@ async function requestJson<T>(
   const response = await fetch(url, init)
 
   if (!response.ok) {
-    throw new DetectorApiError(await failureMessage(response))
+    throw await requestFailure(response)
   }
 
   try {
     const value: unknown = await response.json()
     if (!isExpectedResponse(value)) {
-      throw new DetectorApiError(invalidResponseMessage)
+      throw applicationError('invalidResponse')
     }
     return value
   } catch (error) {
     if (error instanceof DetectorApiError) {
       throw error
     }
-    throw new DetectorApiError(invalidResponseMessage)
+    throw applicationError('invalidResponse')
   }
 }
 

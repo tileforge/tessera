@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
+import { useI18n } from '../i18n/context'
+import { errorMessage } from '../i18n/errors'
 import type { DetectorSpan } from '../api/detector'
 import { InvalidDetectionResponseError } from '../domain/detections'
 import { buildPseudonymizedText } from '../domain/pseudonymization'
@@ -7,7 +9,8 @@ import { buildPseudonymizedText } from '../domain/pseudonymization'
 type PreviewProps = { text: string; spans: DetectorSpan[] }
 
 function CopyablePreview({ preview, empty }: { preview: string; empty: boolean }) {
-  const [status, setStatus] = useState('')
+  const { messages } = useI18n()
+  const [status, setStatus] = useState<'idle' | 'copied' | 'copyFailed'>('idle')
   const [copying, setCopying] = useState(false)
   const active = useRef(true)
 
@@ -18,43 +21,44 @@ function CopyablePreview({ preview, empty }: { preview: string; empty: boolean }
 
   async function copy() {
     setCopying(true)
-    setStatus('')
-    let message = 'Could not copy preview. Select the preview text to copy it manually.'
+    setStatus('idle')
+    let status: 'copied' | 'copyFailed' = 'copyFailed'
     try {
       await navigator.clipboard.writeText(preview)
-      message = 'Preview copied.'
+      status = 'copied'
     } catch {
       // Clipboard errors can contain sensitive details. Keep feedback fixed.
     }
     if (active.current) {
-      setStatus(message)
+      setStatus(status)
       setCopying(false)
     }
   }
 
   return (
-    <section className="preview-panel" aria-label="Pseudonymized preview">
+    <section className="preview-panel" aria-label={messages.preview}>
       <div className="preview-panel__header">
-        <h2>Pseudonymized preview</h2>
-        <button type="button" onClick={copy} disabled={copying}>Copy preview</button>
+        <h2>{messages.preview}</h2>
+        <button type="button" onClick={copy} disabled={copying}>{messages.copy}</button>
       </div>
       <p className="preview-text">{preview}</p>
-      {empty && <p className="preview-note">No replacements were made.</p>}
+      {empty && <p className="preview-note">{messages.noReplacements}</p>}
       <p className="preview-note">
-        Only detected values are replaced; undetected personal data can remain.
+        {messages.previewCaveat}
       </p>
-      <p className="copy-status" role="status">{status}</p>
+      <p className="copy-status" role="status">{status === 'idle' ? '' : messages[status]}</p>
     </section>
   )
 }
 
 export function PseudonymizedPreview({ text, spans }: PreviewProps) {
+  const { locale, messages } = useI18n()
   let preview: string
   try {
     preview = buildPseudonymizedText(text, spans)
   } catch (error) {
     if (error instanceof InvalidDetectionResponseError) {
-      return <p role="alert">{error.message}</p>
+      return <p role="alert">{errorMessage(error, locale, messages)}</p>
     }
     throw error
   }
