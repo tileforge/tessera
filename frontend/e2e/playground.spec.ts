@@ -256,8 +256,9 @@ test('navigates duplicate findings by mouse and keyboard with accessible technic
   await actions.nth(0).press('Enter')
   await expect(firstOccurrence).toBeFocused()
   const rowBox = await firstOccurrence.boundingBox()
-  expect(rowBox!.y).toBeGreaterThanOrEqual(0)
-  expect(rowBox!.y + rowBox!.height).toBeLessThanOrEqual(page.viewportSize()!.height)
+  // Chromium can round scroll positions by a fraction of a CSS pixel.
+  expect(rowBox!.y).toBeGreaterThanOrEqual(-1)
+  expect(rowBox!.y + rowBox!.height).toBeLessThanOrEqual(page.viewportSize()!.height + 1)
 
   const toggle = page.getByRole('button', { name: /^(Show|Hide) technical details$/ })
   await expect(toggle).toHaveAttribute('aria-expanded', 'false')
