@@ -228,7 +228,7 @@ describe('local detector playground', () => {
     await user.type(screen.getByLabelText(/Text to inspect/i), 'Martina Weber')
     await user.click(screen.getByRole('button', { name: /Analyze text/i }))
 
-    expect(await screen.findByText('Model detected')).toBeVisible()
+    expect(await screen.findByRole('cell', { name: 'Model detected' })).toBeVisible()
     expect(received).toEqual({ text: 'Martina Weber' })
   })
 
@@ -359,7 +359,7 @@ describe('local detector playground', () => {
     const input = screen.getByLabelText(/Text to inspect/i)
     await user.type(input, 'Martina Weber')
     await user.click(screen.getByRole('button', { name: /Analyze text/i }))
-    await screen.findByText('Model detected')
+    await screen.findByRole('cell', { name: 'Model detected' })
     await user.clear(input)
     await user.type(input, 'No entities')
     await user.click(screen.getByRole('button', { name: /Analyze text/i }))
@@ -375,7 +375,7 @@ describe('local detector playground', () => {
     const input = screen.getByLabelText(/Text to inspect/i)
     await user.type(input, 'Martina Weber')
     await user.click(screen.getByRole('button', { name: /Analyze text/i }))
-    await screen.findByText('Model detected')
+    await screen.findByRole('cell', { name: 'Model detected' })
     await user.click(screen.getByRole('button', { name: /Clear/i }))
 
     expect(input).toHaveValue('')
@@ -398,7 +398,7 @@ describe('local detector playground', () => {
     const input = screen.getByLabelText(/Text to inspect/i)
     await user.type(input, 'First private submission')
     await user.click(screen.getByRole('button', { name: /Analyze text/i }))
-    await screen.findByText('Model detected')
+    await screen.findByRole('cell', { name: 'Model detected' })
     expect(JSON.stringify({
       queries: queryClient.getQueryCache().getAll(),
       mutations: queryClient.getMutationCache().getAll(),

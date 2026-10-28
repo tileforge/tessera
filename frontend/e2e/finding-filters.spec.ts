@@ -1,0 +1,113 @@
+import { expect, test } from '@playwright/test'
+
+const text = '🙂 Ana Ana X Y Z Q'
+const common = { tier: 2, boosted: false }
+const spans = [
+  { ...common, start: 6, end: 9, entity_type: 'PERSON', recognizer: 'catalog:person', confidence: 0.95 },
+  { ...common, start: 2, end: 5, entity_type: 'PERSON', recognizer: 'ner:gliner', confidence: 0.91 },
+  { ...common, start: 10, end: 11, entity_type: '__proto__', recognizer: 'catalog:synthetic', confidence: 1 },
+  { ...common, start: 12, end: 13, entity_type: '', recognizer: 'custom:test', confidence: 0.5 },
+  { ...common, start: 14, end: 15, entity_type: 'all', recognizer: 'ner:gliner', confidence: 0.8 },
+  { ...common, start: 16, end: 17, entity_type: '<b>東京</b>', recognizer: 'ner:gliner', confidence: 0.8 },
+]
+
+for (const scheme of ['light', 'dark'] as const) {
+  test(`filters only details with keyboard recovery in EN/RU ${scheme}`, async ({ page, context }, testInfo) => {
+    const errors: string[] = []
+    page.on('pageerror', error => errors.push(error.message))
+    page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+    await page.emulateMedia({ colorScheme: scheme })
+    await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+    await page.route('**/api/health', route => route.fulfill({ json: { status: 'ok', ner: true, ner_off_reason: null } }))
+    let calls = 0
+    await page.route('**/api/detect', route => {
+      calls++
+      expect(route.request().postDataJSON()).toEqual({ text })
+      return route.fulfill({ json: { spans, layers_run: ['deterministic', 'ner'], version: 'test' } })
+    })
+    await page.goto('/')
+    await page.getByLabel('Text to inspect').fill(text)
+    await page.getByRole('button', { name: 'Analyze text' }).click()
+    const type = page.getByLabel('Filter by entity type')
+    const method = page.getByLabel('Detection method')
+    const table = page.locator('table.detection-details')
+    const row = table.locator('tbody tr')
+    const technical = page.locator('.technical-toggle')
+    await technical.focus()
+    await page.keyboard.press('Enter')
+    await expect(technical).toHaveAttribute('aria-expanded', 'true')
+    await type.focus()
+    await type.selectOption({ label: 'PERSON' })
+    await page.keyboard.press('Tab')
+    await expect(method).toBeFocused()
+    await method.selectOption('ner')
+    await page.keyboard.press('Tab')
+    await expect(page.getByRole('button', { name: 'Reset filters' })).toBeFocused()
+    await expect(row).toHaveCount(1)
+    await expect(page.getByText('Showing 1 of 6 findings.')).toBeVisible()
+    await expect(page.getByText('Filters apply only to the details table.')).toBeVisible()
+    await expect(page.getByRole('region', { name: 'Finding summary' })).toContainText('6 findings')
+    await expect(page.getByRole('mark')).toHaveCount(6)
+    const preview = page.getByRole('region', { name: 'Pseudonymized preview' })
+    const complete = '🙂 [PERSON_1] [PERSON_1] [ENTITY_1] [ENTITY_2] [ENTITY_3] [ENTITY_4]'
+    await expect(preview.locator('.preview-text')).toHaveText(complete)
+    await page.getByRole('button', { name: 'Copy preview' }).click()
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(complete)
+    const visibleHighlight = page.getByRole('button', { name: 'Show details for Ana — Model detected' })
+    await visibleHighlight.focus()
+    await page.keyboard.press(' ')
+    await expect(row).toBeFocused()
+    await expect(method).toHaveValue('ner')
+    await expect(type).not.toHaveValue('all')
+    await page.screenshot({ path: testInfo.outputPath(`en-filtered-${scheme}.png`), fullPage: true })
+    await method.focus()
+    await method.selectOption('checksum')
+    await expect(method).toBeFocused()
+    await expect(row).toHaveCount(0)
+    await expect(page.getByText('Showing 0 of 6 findings.')).toBeVisible()
+    await expect(page.getByText('No findings match these filters.')).toBeVisible()
+    await expect(page.getByText(/No entities were detected|No replacements were made/)).toHaveCount(0)
+    await expect(technical).toHaveAttribute('aria-expanded', 'true')
+    await page.getByLabel('Text to inspect').fill(`${text} edited`)
+    await page.getByLabel('Язык / Language').selectOption('ru')
+    await expect(page.getByLabel('Фильтр по типу сущности')).not.toHaveValue('all')
+    await expect(page.getByLabel('Способ обнаружения')).toHaveValue('checksum')
+    await expect(page.getByText('Показано: 0 из 6.')).toBeVisible()
+    await expect(page.getByText('Нет находок, соответствующих этим фильтрам.')).toBeVisible()
+    await expect(page.getByText('Фильтры применяются только к таблице сведений.')).toBeVisible()
+    await page.screenshot({ path: testInfo.outputPath(`ru-empty-${scheme}.png`), fullPage: true })
+    const hiddenHighlight = page.getByRole('button', { name: 'Показать сведения: Ana — Детерминированный шаблон' })
+    await hiddenHighlight.focus()
+    await page.keyboard.press('Enter')
+    await expect(page.getByLabel('Фильтр по типу сущности')).toHaveValue('all')
+    await expect(page.getByLabel('Способ обнаружения')).toHaveValue('all')
+    await expect(row).toHaveCount(6)
+    await expect(row.first()).toBeFocused()
+    await expect(row.first().getByLabel('Уверенность 0.95')).toBeVisible()
+    await hiddenHighlight.focus()
+    await page.keyboard.press(' ')
+    await expect(row.first()).toBeFocused()
+    const disclosure = page.locator('.technical-toggle')
+    await disclosure.focus()
+    await page.keyboard.press(' ')
+    await expect(disclosure).toHaveAttribute('aria-expanded', 'false')
+    await page.getByLabel('Фильтр по типу сущности').selectOption({ label: '(пустой тип)' })
+    await page.getByLabel('Способ обнаружения').selectOption('other')
+    await expect(row).toHaveCount(1)
+    await expect(row.locator('td[data-label="Фрагмент"]')).toHaveText('Y')
+    await page.getByRole('button', { name: 'Сбросить фильтры' }).click()
+    await expect(row).toHaveCount(6)
+    await expect(table.locator('[aria-current]')).toHaveCount(0)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
+    await page.screenshot({ path: testInfo.outputPath(`ru-reset-${scheme}.png`), fullPage: true })
+    expect(calls).toBe(1)
+    expect(await page.evaluate(() => ({ ...localStorage }))).toEqual({})
+    expect(await page.evaluate(() => ({ ...sessionStorage }))).toEqual({})
+    expect(new URL(page.url()).search).toBe('')
+    expect(new URL(page.url()).hash).toBe('')
+    await page.getByRole('button', { name: 'Очистить', exact: true }).click()
+    await expect(table).toHaveCount(0)
+    await expect(page.getByLabel('Способ обнаружения')).toHaveCount(0)
+    expect(errors).toEqual([])
+  })
+}
