@@ -364,6 +364,11 @@ textarea:focus-visible {
   overflow-wrap: anywhere;
 }
 
+.finding-highlight {
+  display: inline-block;
+  max-width: 100%;
+}
+
 .finding-action {
   max-width: 100%;
   padding: 0;

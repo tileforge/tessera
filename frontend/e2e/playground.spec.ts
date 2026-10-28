@@ -275,3 +275,50 @@ test('navigates duplicate findings by mouse and keyboard with accessible technic
   await expect(page.locator('.preview-text')).toHaveText('🙂 [PERSON_1] [PERSON_1]')
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
 })
+
+test('keeps evidence styling around every line of a wrapped finding in light and dark mode', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 720 })
+  const text = 'Long synthetic organization name repeated for wrapping'
+  await page.route('**/api/health', (route) => route.fulfill({
+    json: { status: 'ok', ner: true, ner_off_reason: null },
+  }))
+  await page.route('**/api/detect', (route) => route.fulfill({
+    json: {
+      // All 54 ASCII code points belong to the same finding.
+      spans: [{
+        entity_type: 'ORG', start: 0, end: 54, confidence: 0.91,
+        recognizer: 'ner:gliner', tier: 2, boosted: false,
+      }],
+      layers_run: ['deterministic', 'ner'], version: 'test-version',
+    },
+  }))
+  await page.goto('/')
+  await page.getByLabel('Text to inspect').fill(text)
+  await page.getByRole('button', { name: 'Analyze text' }).click()
+  const action = page.getByRole('button', { name: `Show details for ${text} — Model detected` })
+  const mark = page.locator('mark').filter({ has: action })
+  await expect(mark).toHaveAttribute('aria-label', `${text} — Model detected`)
+  const row = page.getByRole('table').getByRole('row').filter({ hasText: text })
+  for (const scheme of ['light', 'dark'] as const) {
+    await page.emulateMedia({ colorScheme: scheme })
+    await expect(mark).toHaveCSS('background-color', scheme === 'light' ? 'rgb(219, 234, 254)' : 'rgb(30, 58, 138)')
+    await expect(mark).toHaveCSS('color', scheme === 'light' ? 'rgb(23, 32, 51)' : 'rgb(219, 234, 254)')
+    const evidenceBox = await mark.boundingBox()
+    const actionBox = await action.boundingBox()
+    const lineHeight = await action.evaluate((button) => Number.parseFloat(getComputedStyle(button).lineHeight))
+    expect(actionBox!.height).toBeGreaterThan(lineHeight * 1.5)
+    // The evidence background must enclose the entire multiline action.
+    expect(evidenceBox!.y).toBeLessThanOrEqual(actionBox!.y)
+    expect(evidenceBox!.y + evidenceBox!.height).toBeGreaterThanOrEqual(actionBox!.y + actionBox!.height)
+    await action.click()
+    await expect(row).toBeFocused()
+    await expect(row).toHaveAttribute('aria-current', 'true')
+    await action.focus()
+    await action.press('Space')
+    await expect(row).toBeFocused()
+    await action.focus()
+    await action.press('Enter')
+    await expect(row).toBeFocused()
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
+  }
+})

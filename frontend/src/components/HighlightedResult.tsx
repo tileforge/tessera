@@ -57,7 +57,12 @@ export function HighlightedResult({ text, spans, selectedSpan, onSelectSpan }: H
 
         const label = layerLabel(segment.layer)
         return (
-          <mark key={index} data-layer={segment.layer} aria-label={`${segment.text} — ${label}`}>
+          <mark
+            key={index}
+            className={onSelectSpan ? 'finding-highlight' : undefined}
+            data-layer={segment.layer}
+            aria-label={`${segment.text} — ${label}`}
+          >
             {onSelectSpan ? (
               <button
                 type="button"
