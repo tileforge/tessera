@@ -1,7 +1,8 @@
+import { errorMessage } from '../i18n/errors'
+import { useI18n } from '../i18n/context'
 import type { DetectorSpan } from '../api/detector'
 import {
   buildHighlightedSegments,
-  type DetectionLayer,
   InvalidDetectionResponseError,
 } from '../domain/detections'
 
@@ -12,29 +13,15 @@ type HighlightedResultProps = {
   onSelectSpan?: (span: DetectorSpan) => void
 }
 
-function layerLabel(layer: DetectionLayer): string {
-  switch (layer) {
-    case 'checksum':
-      return 'Checksum verified'
-    case 'pattern':
-      // A catalog rule with no checksum to verify: an e-mail has none, and the
-      // Steuernummer's validator is structural. Both say so in the catalog.
-      return 'Deterministic pattern'
-    case 'ner':
-      return 'Model detected'
-    case 'other':
-      return 'Other recognizer'
-  }
-}
-
 export function HighlightedResult({ text, spans, selectedSpan, onSelectSpan }: HighlightedResultProps) {
+  const { locale, messages } = useI18n()
   let segments
 
   try {
     segments = buildHighlightedSegments(text, spans)
   } catch (error) {
     if (error instanceof InvalidDetectionResponseError) {
-      return <p role="alert">{error.message}</p>
+      return <p role="alert">{errorMessage(error, locale, messages)}</p>
     }
     throw error
   }
@@ -43,7 +30,7 @@ export function HighlightedResult({ text, spans, selectedSpan, onSelectSpan }: H
     return (
       <>
         <p className="highlighted-result">{text}</p>
-        <p>No entities were detected. This does not prove the text contains no personal data.</p>
+        <p>{messages.noFindings}</p>
       </>
     )
   }
@@ -55,7 +42,7 @@ export function HighlightedResult({ text, spans, selectedSpan, onSelectSpan }: H
           return <span key={index}>{segment.text}</span>
         }
 
-        const label = layerLabel(segment.layer)
+        const label = messages.layers[segment.layer]
         return (
           <mark
             key={index}
@@ -67,7 +54,7 @@ export function HighlightedResult({ text, spans, selectedSpan, onSelectSpan }: H
               <button
                 type="button"
                 className="finding-action"
-                aria-label={`Show details for ${segment.text} — ${label}`}
+                aria-label={messages.showDetails(segment.text, label)}
                 aria-pressed={selectedSpan?.start === segment.span.start && selectedSpan?.end === segment.span.end}
                 onClick={() => onSelectSpan(segment.span)}
               >

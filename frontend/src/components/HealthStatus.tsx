@@ -1,3 +1,4 @@
+import { useI18n } from '../i18n/context'
 import type { HealthResponse } from '../api/detector'
 
 type HealthStatusProps = {
@@ -7,23 +8,24 @@ type HealthStatusProps = {
 }
 
 export function HealthStatus({ health, pending, unavailable }: HealthStatusProps) {
+  const { messages } = useI18n()
   let state: 'checking' | 'unavailable' | 'deterministic' | 'full'
   let message: string
   let reason: string | undefined
 
   if (pending) {
     state = 'checking'
-    message = 'Checking detector health…'
+    message = messages.checkingHealth
   } else if (unavailable || !health) {
     state = 'unavailable'
-    message = 'Detector unavailable.'
+    message = messages.unavailable
   } else if (!health.ner) {
     state = 'deterministic'
-    message = 'Deterministic detection active.'
-    reason = health.ner_off_reason ?? 'NER is unavailable.'
+    message = messages.deterministicHealth
+    reason = health.ner_off_reason ?? messages.nerUnavailable
   } else {
     state = 'full'
-    message = 'Full detection active.'
+    message = messages.fullHealth
   }
 
   return (

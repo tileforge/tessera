@@ -323,3 +323,90 @@ test('keeps evidence styling around every line of a wrapped finding in light and
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
   }
 })
+
+for (const scheme of ['light', 'dark'] as const) {
+  test(`uses the Russian example and preserves result controls through language changes in ${scheme} mode`, async ({ page, context }, testInfo) => {
+    await page.emulateMedia({ colorScheme: scheme })
+    await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+    const example = 'Die fiktive Kundin Martina Weber lebt in Berlin. Kontakt: martina.weber@example.com.'
+    let calls = 0
+    await page.route('**/api/health', route => route.fulfill({
+      json: { status: 'ok', ner: true, ner_off_reason: null },
+    }))
+    await page.route('**/api/detect', route => {
+      calls++
+      expect(route.request().postDataJSON()).toEqual({ text: example })
+      return route.fulfill({ json: {
+        spans: [
+          { entity_type: 'PERSON', start: 19, end: 32, confidence: 0.91, recognizer: 'ner:gliner', tier: 2, boosted: true },
+          { entity_type: 'LOCATION', start: 41, end: 47, confidence: 0.88, recognizer: 'ner:gliner', tier: 2, boosted: false },
+          { entity_type: 'EMAIL', start: 58, end: 83, confidence: 0.95, recognizer: 'catalog:email', tier: 2, boosted: false },
+        ], layers_run: ['deterministic', 'ner'], version: 'test',
+      } })
+    })
+    await page.goto('/')
+    const language = page.getByRole('combobox', { name: 'Язык / Language' })
+    await language.focus()
+    // Native popup key selection is not automated by macOS headless Chromium.
+    // Use Playwright's native select API, then verify real keyboard focus flow.
+    await language.selectOption('ru')
+    await expect(language).toHaveValue('ru')
+    await expect(page.locator('html')).toHaveAttribute('lang', 'ru')
+    await expect(language).toBeFocused()
+    await language.press('Tab')
+    await expect(page.getByLabel('Текст для проверки')).toBeFocused()
+    await expect(page.getByRole('note', { name: 'Возможности обнаружения' })).toContainText('Номера телефонов пока не поддерживаются.')
+    await page.getByRole('button', { name: 'Вставить пример' }).click()
+    await expect(page.getByLabel('Текст для проверки')).toHaveValue(example)
+    await expect(page.getByRole('button', { name: 'Вставить пример' })).toBeDisabled()
+    expect(calls).toBe(0)
+    await page.getByRole('button', { name: 'Проверить текст' }).click()
+    await expect(page.getByRole('heading', { name: 'Найдено: 3' })).toBeVisible()
+    await expect(page.getByText('Полная проверка: детерминированный слой + NER')).toBeVisible()
+    const action = page.getByRole('button', { name: 'Показать сведения: Martina Weber — Найдено моделью' })
+    await action.focus()
+    await action.press('Enter')
+    const table = page.getByRole('table', { name: /^(Сведения о находках|Detection details)$/ })
+    const selected = table.locator('tr[aria-current="true"]')
+    await expect(selected).toBeFocused()
+    const toggle = page.getByRole('button', { name: /^(Показать|Скрыть) технические сведения$/ })
+    await toggle.focus()
+    await toggle.press('Space')
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true')
+    await expect(table.getByRole('columnheader')).toHaveText(['Фрагмент', 'Тип сущности', 'Слой', 'Уверенность', 'Уровень', 'Распознаватель', 'Контекст'])
+    await expect(table.getByText('Детерминированный шаблон')).toBeVisible()
+    await expect(table.getByText('Оценка усилена контекстом: да')).toBeVisible()
+    const preview = page.getByRole('region', { name: /^(Результат псевдонимизации|Pseudonymized preview)$/ })
+    await expect(preview).toContainText('Заменены только найденные значения; необнаруженные персональные данные могут остаться.')
+    await page.getByRole('button', { name: 'Копировать результат' }).click()
+    await expect(preview.getByRole('status')).toHaveText('Результат скопирован.')
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('Die fiktive Kundin [PERSON_1] lebt in [LOCATION_1]. Kontakt: [EMAIL_1].')
+    if (page.viewportSize()?.width === 320) {
+      for (const label of ['Фрагмент', 'Тип сущности', 'Слой', 'Уверенность', 'Уровень', 'Распознаватель', 'Контекст']) {
+        const presentation = await table.locator(`td[data-label="${label}"]`).first().evaluate(cell => {
+          const style = getComputedStyle(cell, '::before')
+          return { content: style.content, display: style.display, visibility: style.visibility }
+        })
+        expect(presentation.content).toContain(label)
+        expect(presentation.display).not.toBe('none')
+        expect(presentation.visibility).toBe('visible')
+      }
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
+    await page.screenshot({ path: testInfo.outputPath(`russian-${scheme}.png`), fullPage: true })
+    await language.focus()
+    await language.selectOption('en')
+    await expect(language).toHaveValue('en')
+    await expect(page.getByRole('button', { name: 'Hide technical details' })).toHaveAttribute('aria-expanded', 'true')
+    await expect(selected).toHaveCount(1)
+    await expect(page.getByRole('button', { name: 'Show details for Martina Weber — Model detected' })).toHaveAttribute('aria-pressed', 'true')
+    await expect(preview.getByRole('status')).toHaveText('Preview copied.')
+    await expect(page.getByLabel('Text to inspect')).toHaveValue(example)
+    expect(calls).toBe(1)
+    expect(await page.evaluate(() => ({ ...localStorage }))).toEqual({})
+    expect(await page.evaluate(() => ({ ...sessionStorage }))).toEqual({})
+    expect(new URL(page.url()).search).toBe('')
+    await page.getByRole('button', { name: 'Clear' }).click()
+    await expect(page.getByRole('table')).toHaveCount(0)
+  })
+}

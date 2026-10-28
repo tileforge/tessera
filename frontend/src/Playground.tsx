@@ -5,6 +5,9 @@ import { detectText, getHealth, type DetectResponse } from './api/detector'
 import { DetectionResults } from './components/DetectionResults'
 import { HealthStatus } from './components/HealthStatus'
 import { TextAnalyzer } from './components/TextAnalyzer'
+import { useI18n } from './i18n/context'
+import { errorMessage } from './i18n/errors'
+import type { Messages } from './i18n/messages'
 import { buildHighlightedSegments, InvalidDetectionResponseError } from './domain/detections'
 
 type AnalysisResult = {
@@ -21,23 +24,24 @@ type PendingAnalysis = ActiveRequest & {
   text: string
 }
 
-function resultScanStatus(layersRun: DetectResponse['layers_run']) {
+function resultScanStatus(layersRun: DetectResponse['layers_run'], messages: Messages) {
   const ranDeterministic = layersRun.includes('deterministic')
   const ranNer = layersRun.includes('ner')
 
   if (ranDeterministic && ranNer) {
-    return { state: 'full', message: 'Full scan: deterministic + NER' }
+    return { state: 'full', message: messages.fullScan }
   }
   if (ranDeterministic) {
-    return { state: 'limited', message: 'Limited scan: deterministic only — NER did not run.' }
+    return { state: 'limited', message: messages.deterministicScan }
   }
   if (ranNer) {
-    return { state: 'limited', message: 'Limited scan: NER only — deterministic detection did not run.' }
+    return { state: 'limited', message: messages.nerScan }
   }
-  return { state: 'limited', message: 'Limited scan: no detector layers ran.' }
+  return { state: 'limited', message: messages.noScan }
 }
 
 export function Playground() {
+  const { locale, messages, setLocale } = useI18n()
   const [text, setText] = useState('')
   const [result, setResult] = useState<AnalysisResult | null>(null)
   const [error, setError] = useState<Error | null>(null)
@@ -123,28 +127,35 @@ export function Playground() {
     }
   }
 
-  const scanStatus = result && resultScanStatus(result.response.layers_run)
+  const scanStatus = result && resultScanStatus(result.response.layers_run, messages)
 
   return (
     <main className="playground">
       <header className="playground__header">
         <div className="playground__brand">
           <p className="playground__wordmark">Tessera</p>
-          <h1>Detector playground</h1>
+          <h1>{messages.title}</h1>
         </div>
-        <HealthStatus
-          health={healthQuery.data}
-          pending={healthQuery.isPending}
-          unavailable={healthQuery.isError}
-        />
+        <div className="playground__controls">
+          <label className="language-control">
+            Язык / Language
+            <select value={locale} onChange={(event) => setLocale(event.target.value === 'ru' ? 'ru' : 'en')}>
+              <option value="en">English</option>
+              <option value="ru">Русский</option>
+            </select>
+          </label>
+          <HealthStatus
+            health={healthQuery.data}
+            pending={healthQuery.isPending}
+            unavailable={healthQuery.isError}
+          />
+        </div>
       </header>
       <p className="playground__intro">
-        Inspect local detector findings without saving the text you provide.
+        {messages.introduction}
       </p>
-      <p className="coverage-note" role="note" aria-label="Detection coverage">
-        Catalog rules cover emails and supported financial and tax identifiers. NER can detect names,
-        locations, organizations and sensitive categories when it runs. These are capabilities, not
-        guarantees. Phone numbers are not currently supported.
+      <p className="coverage-note" role="note" aria-label={messages.coverageLabel}>
+        {messages.coverage}
       </p>
       <TextAnalyzer
         text={text}
@@ -155,15 +166,15 @@ export function Playground() {
       />
       <section className="analysis-output">
         <div className="analysis-status" role="status" aria-live="polite" aria-atomic="true">
-          {inFlight && <p>Analyzing text…</p>}
-          {!inFlight && !result && !error && <p>Detections will appear here after you analyze text.</p>}
+          {inFlight && <p>{messages.analyzing}</p>}
+          {!inFlight && !result && !error && <p>{messages.waiting}</p>}
           {result && (
             <p className="result-scan-status" data-state={scanStatus?.state}>{scanStatus?.message}</p>
           )}
         </div>
         {result && <DetectionResults text={result.text} spans={result.response.spans} />}
       </section>
-      {error && <p role="alert">{error.message}</p>}
+      {error && <p role="alert">{errorMessage(error, locale, messages)}</p>}
     </main>
   )
 }

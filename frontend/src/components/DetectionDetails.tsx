@@ -1,7 +1,8 @@
 import { useEffect, useId, useRef, useState } from 'react'
 
+import { useI18n } from '../i18n/context'
 import type { DetectorSpan } from '../api/detector'
-import { classifyRecognizer, type DetectionLayer } from '../domain/detections'
+import { classifyRecognizer } from '../domain/detections'
 
 type DetectionDetailsProps = {
   text: string
@@ -9,33 +10,13 @@ type DetectionDetailsProps = {
   selectedSpan?: Pick<DetectorSpan, 'start' | 'end'> | null
 }
 
-const confidenceFormatter = new Intl.NumberFormat(undefined, {
-  style: 'percent',
-  maximumFractionDigits: 0,
-})
-
-function layerLabel(layer: DetectionLayer): string {
-  switch (layer) {
-    case 'checksum':
-      return 'Checksum verified'
-    case 'pattern':
-      // An e-mail has no checksum to verify and the Steuernummer's validator is
-      // structural, so both are catalog rules that carry no arithmetic proof.
-      // Saying otherwise overstates the evidence, which is the one thing this
-      // column exists to get right.
-      return 'Deterministic pattern'
-    case 'ner':
-      return 'Model detected'
-    case 'other':
-      return 'Other recognizer'
-  }
-}
-
 function fragmentFor(codePoints: string[], span: DetectorSpan): string {
   return codePoints.slice(span.start, span.end).join('')
 }
 
 export function DetectionDetails({ text, spans, selectedSpan }: DetectionDetailsProps) {
+  const { locale, messages } = useI18n()
+  const confidenceFormatter = new Intl.NumberFormat(locale, { style: 'percent', maximumFractionDigits: 0 })
   const [showTechnical, setShowTechnical] = useState(false)
   const tableId = useId()
   const rows = useRef(new Map<string, HTMLTableRowElement>())
@@ -60,20 +41,20 @@ export function DetectionDetails({ text, spans, selectedSpan }: DetectionDetails
         aria-controls={tableId}
         onClick={() => setShowTechnical(!showTechnical)}
       >
-        {showTechnical ? 'Hide technical details' : 'Show technical details'}
+        {showTechnical ? messages.hideTechnical : messages.showTechnical}
       </button>
       <table id={tableId} className="detection-details">
-        <caption>Detection details</caption>
+        <caption>{messages.details}</caption>
         <thead>
           <tr>
-            <th scope="col">Fragment</th>
-            <th scope="col">Entity type</th>
-            <th scope="col">Layer</th>
-            <th scope="col">Confidence</th>
+            <th scope="col">{messages.fragment}</th>
+            <th scope="col">{messages.entityType}</th>
+            <th scope="col">{messages.layer}</th>
+            <th scope="col">{messages.confidence}</th>
             {showTechnical && <>
-              <th scope="col">Tier</th>
-              <th scope="col">Recognizer</th>
-              <th scope="col">Context</th>
+              <th scope="col">{messages.tier}</th>
+              <th scope="col">{messages.recognizer}</th>
+              <th scope="col">{messages.context}</th>
             </>}
           </tr>
         </thead>
@@ -89,18 +70,18 @@ export function DetectionDetails({ text, spans, selectedSpan }: DetectionDetails
               tabIndex={-1}
               aria-current={selectedSpan?.start === span.start && selectedSpan?.end === span.end ? 'true' : undefined}
             >
-              <td data-label="Fragment">{fragmentFor(codePoints, span)}</td>
-              <td data-label="Entity type">{span.entity_type}</td>
-              <td data-label="Layer">{layerLabel(classifyRecognizer(span.recognizer, span.confidence))}</td>
-              <td data-label="Confidence">
-                <span aria-label={`Confidence ${span.confidence}`}>
+              <td data-label={messages.fragment}>{fragmentFor(codePoints, span)}</td>
+              <td data-label={messages.entityType}>{span.entity_type}</td>
+              <td data-label={messages.layer}>{messages.layers[classifyRecognizer(span.recognizer, span.confidence)]}</td>
+              <td data-label={messages.confidence}>
+                <span aria-label={`${messages.confidence} ${span.confidence}`}>
                   {confidenceFormatter.format(span.confidence)}
                 </span>
               </td>
               {showTechnical && <>
-                <td data-label="Tier">{span.tier}</td>
-                <td data-label="Recognizer">{span.recognizer}</td>
-                <td data-label="Context">Context boosted: {span.boosted ? 'yes' : 'no'}</td>
+                <td data-label={messages.tier}>{span.tier}</td>
+                <td data-label={messages.recognizer}>{span.recognizer}</td>
+                <td data-label={messages.context}>{messages.contextBoosted} {span.boosted ? messages.yes : messages.no}</td>
               </>}
             </tr>
           ))}

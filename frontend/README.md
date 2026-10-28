@@ -21,6 +21,22 @@ detector, set `TESSERA_DETECTOR_URL` before starting the frontend:
 TESSERA_DETECTOR_URL=http://127.0.0.1:9000 npm --prefix frontend run dev
 ```
 
+## Language and example
+
+The `Язык / Language` select offers English and Russian. English is the default;
+the selection stays in memory for the current page only. Switching changes UI
+labels and status messages while preserving input, accepted results, finding
+selection, technical disclosure and pending requests. Detector entity types,
+recognizer names, diagnostics, submitted text and replacement tokens stay as
+returned or entered.
+
+`Use example` / `Вставить пример` fills a fictional German text supported by this
+detector. It is available only when the input is empty or whitespace and no
+analysis is pending. It does not overwrite text or analyze automatically;
+choose `Analyze text` / `Проверить текст` to send it to the local detector.
+Filling the example is an ordinary edit and preserves any previous result until
+Clear or a new analysis.
+
 ## NER and privacy boundary
 
 NER weights are optional for startup. Without them, the detector runs its
