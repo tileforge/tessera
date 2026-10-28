@@ -1,4 +1,5 @@
 import { cleanup, render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import type { DetectorSpan } from '../api/detector'
@@ -7,7 +8,7 @@ import { DetectionDetails } from './DetectionDetails'
 describe('DetectionDetails', () => {
   afterEach(cleanup)
 
-  it('shows complete metadata for a model detection', () => {
+  it('shows complete metadata for a model detection', async () => {
     const spans: DetectorSpan[] = [{
       start: 0,
       end: 7,
@@ -20,6 +21,7 @@ describe('DetectionDetails', () => {
 
     render(<DetectionDetails text="Martina" spans={spans} />)
 
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Show technical details' }))
     const row = screen.getAllByRole('row')[1]
     expect(within(row).getByText('Martina')).toBeVisible()
     expect(within(row).getByText('PERSON')).toBeVisible()
@@ -30,7 +32,7 @@ describe('DetectionDetails', () => {
     expect(within(row).getByText('Context boosted: no')).toBeVisible()
   })
 
-  it('identifies a context-boosted catalog detection', () => {
+  it('identifies a context-boosted catalog detection', async () => {
     const spans: DetectorSpan[] = [{
       start: 5,
       end: 9,
@@ -43,6 +45,7 @@ describe('DetectionDetails', () => {
 
     render(<DetectionDetails text="Card 4111" spans={spans} />)
 
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Show technical details' }))
     const row = screen.getAllByRole('row')[1]
     expect(within(row).getByText('4111')).toBeVisible()
     expect(within(row).getByText('Checksum verified')).toBeVisible()

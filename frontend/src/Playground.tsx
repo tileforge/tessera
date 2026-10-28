@@ -2,10 +2,8 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { useRef, useState } from 'react'
 
 import { detectText, getHealth, type DetectResponse } from './api/detector'
-import { DetectionDetails } from './components/DetectionDetails'
+import { DetectionResults } from './components/DetectionResults'
 import { HealthStatus } from './components/HealthStatus'
-import { HighlightedResult } from './components/HighlightedResult'
-import { PseudonymizedPreview } from './components/PseudonymizedPreview'
 import { TextAnalyzer } from './components/TextAnalyzer'
 import { buildHighlightedSegments, InvalidDetectionResponseError } from './domain/detections'
 
@@ -155,24 +153,15 @@ export function Playground() {
         onAnalyze={analyze}
         onClear={clear}
       />
-      <section className="analysis-output" aria-live="polite" aria-atomic="true">
-        {inFlight && <p>Analyzing text…</p>}
-        {!inFlight && !result && !error && <p>Detections will appear here after you analyze text.</p>}
-        {result && (
-          <>
+      <section className="analysis-output">
+        <div className="analysis-status" role="status" aria-live="polite" aria-atomic="true">
+          {inFlight && <p>Analyzing text…</p>}
+          {!inFlight && !result && !error && <p>Detections will appear here after you analyze text.</p>}
+          {result && (
             <p className="result-scan-status" data-state={scanStatus?.state}>{scanStatus?.message}</p>
-            <div className="result-previews">
-              <section className="submitted-panel" aria-label="Submitted text">
-                <h2>Submitted text</h2>
-                <HighlightedResult text={result.text} spans={result.response.spans} />
-              </section>
-              <PseudonymizedPreview text={result.text} spans={result.response.spans} />
-            </div>
-            {result.response.spans.length > 0 && (
-              <DetectionDetails text={result.text} spans={result.response.spans} />
-            )}
-          </>
-        )}
+          )}
+        </div>
+        {result && <DetectionResults text={result.text} spans={result.response.spans} />}
       </section>
       {error && <p role="alert">{error.message}</p>}
     </main>
