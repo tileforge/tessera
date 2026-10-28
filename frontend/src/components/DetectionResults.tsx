@@ -24,6 +24,13 @@ export function DetectionResults({ text, spans }: DetectionResultsProps) {
   }
 
   const types = Array.from(counts.keys())
+  const typeLabels = types.map((type) => type === '' ? messages.emptyType : type)
+  // Native option labels collapse ASCII whitespace. Prefix every type on a
+  // collision so raw, fallback and already prefixed labels remain distinguishable.
+  const optionLabels = [messages.allTypes, ...typeLabels].map((label) => (
+    label.replace(/[\t\n\f\r ]+/g, ' ').replace(/^ | $/g, '')
+  ))
+  const disambiguateTypes = new Set(optionLabels).size !== optionLabels.length
   const methods: DetectionLayer[] = ['checksum', 'pattern', 'ner', 'other']
   const availableMethods = new Set(spans.map((span) => classifyRecognizer(span.recognizer, span.confidence)))
   const matchesFilters = (span: DetectorSpan) => (
@@ -84,8 +91,8 @@ export function DetectionResults({ text, spans }: DetectionResultsProps) {
                 }}
               >
                 <option value="all">{messages.allTypes}</option>
-                {types.map((type, index) => (
-                  <option key={index} value={`type-${index}`}>{type === '' ? messages.emptyType : type}</option>
+                {typeLabels.map((label, index) => (
+                  <option key={index} value={`type-${index}`}>{disambiguateTypes ? `${index + 1}. ${label}` : label}</option>
                 ))}
               </select>
             </label>

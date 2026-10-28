@@ -22,10 +22,10 @@ const rows = () => within(screen.getByRole('table')).getAllByRole('row').slice(1
 const typeFilter = () => screen.getByLabelText('Filter by entity type')
 const methodFilter = () => screen.getByLabelText('Detection method')
 
-async function analyze() {
+async function analyze(submittedText = text) {
   const user = userEvent.setup()
   render(<App />)
-  await user.type(screen.getByLabelText('Text to inspect'), text)
+  await user.type(screen.getByLabelText('Text to inspect'), submittedText)
   await user.click(screen.getByRole('button', { name: 'Analyze text' }))
   await screen.findByRole('table')
   return user
@@ -101,6 +101,74 @@ describe('finding filters', () => {
     }
     await user.selectOptions(typeFilter(), options[0])
     expect(rows()).toHaveLength(types.length)
+  })
+
+  it.each(['en', 'ru'] as const)('gives colliding type options distinct visible labels in %s and preserves selection across locales', async (locale) => {
+    const types = [
+      '', '(empty type)', 'All types', '(пустой тип)', 'Все типы',
+      '"(empty type)"', '"All types"', '"(пустой тип)"', '"Все типы"',
+      '"', '__proto__', '<b>東京</b>', ' All  types ', '\tВсе типы\n', '1. x y', 'x y', 'x  y',
+    ]
+    const fragments = types.map((_, index) => String.fromCharCode(65 + index))
+    let calls = 0
+    server.use(http.post('/api/detect', () => {
+      calls++
+      return HttpResponse.json({
+        ...response,
+        spans: types.map((entity_type, index) => ({
+          ...spans[1], entity_type, start: index * 2, end: index * 2 + 1,
+        })),
+      })
+    }))
+    const user = await analyze(fragments.join(' '))
+    const select = typeFilter()
+    const language = screen.getByLabelText('Язык / Language')
+    await user.selectOptions(language, locale)
+    const options = within(select).getAllByRole('option') as HTMLOptionElement[]
+    const labels = options.map(option => option.label)
+    expect(new Set(labels).size).toBe(types.length + 1)
+    for (const [index, type] of types.entries()) {
+      // Select by the visible name a user can distinguish, then inspect the row.
+      await user.selectOptions(select, options.find(option => option.label === labels[index + 1])!)
+      expect(rows()).toHaveLength(1)
+      const cells = within(rows()[0]).getAllByRole('cell')
+      expect(cells[0]).toHaveTextContent(fragments[index])
+      expect(cells[1].textContent).toBe(type)
+    }
+    const selectedValue = (select as HTMLSelectElement).value
+    await user.selectOptions(language, locale === 'en' ? 'ru' : 'en')
+    expect(select).toHaveValue(selectedValue)
+    expect(within(rows()[0]).getAllByRole('cell')[1].textContent).toBe(types.at(-1))
+    expect(new Set((within(select).getAllByRole('option') as HTMLOptionElement[]).map(option => option.label)).size)
+      .toBe(types.length + 1)
+    await user.selectOptions(language, locale)
+    expect(select).toHaveValue(selectedValue)
+    await user.selectOptions(select, within(select).getByRole('option', { name: labels[0] }))
+    expect(rows()).toHaveLength(types.length)
+    expect(calls).toBe(1)
+  })
+
+  it('distinguishes native option labels when only whitespace differs between raw types', async () => {
+    const types = ['x y', 'x  y', ' x y ', '\tx y\n', 'x\ty', '1. x y', '"x y"', '"x  y"']
+    const fragments = types.map((_, index) => String.fromCharCode(65 + index))
+    server.use(http.post('/api/detect', () => HttpResponse.json({
+      ...response,
+      spans: types.map((entity_type, index) => ({
+        ...spans[1], entity_type, start: index * 2, end: index * 2 + 1,
+      })),
+    })))
+    const user = await analyze(fragments.join(' '))
+    const select = typeFilter()
+    const options = within(select).getAllByRole('option') as HTMLOptionElement[]
+    const labels = options.map(option => option.label)
+    expect(new Set(labels).size).toBe(types.length + 1)
+    for (const [index, type] of types.entries()) {
+      await user.selectOptions(select, options.find(option => option.label === labels[index + 1])!)
+      expect(rows()).toHaveLength(1)
+      const cells = within(rows()[0]).getAllByRole('cell')
+      expect(cells[0]).toHaveTextContent(fragments[index])
+      expect(cells[1].textContent).toBe(type)
+    }
   })
 
   it('retains disclosure and controls through zero matches, then resets filters and selection with control focus', async () => {
