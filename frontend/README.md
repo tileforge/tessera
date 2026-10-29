@@ -37,6 +37,26 @@ choose `Analyze text` / `Проверить текст` to send it to the local 
 Filling the example is an ordinary edit and preserves any previous result until
 Clear or a new analysis.
 
+## Local TXT files
+
+`Open TXT file` / `Открыть TXT` reads one UTF-8 `.txt` file locally, up to
+100 KB (100,000 bytes, including a UTF-8 BOM). The filename suffix is checked
+without case sensitivity; the MIME type does not matter. Malformed UTF-8,
+NUL characters and empty or whitespace-only files are rejected. A UTF-8 BOM
+is removed; all other Unicode, whitespace and line endings are preserved.
+
+Opening a file fills the input without sending a request. Review the text and
+choose Analyze to send it to the configured local detector. File opening is
+available only for empty or whitespace input while no analysis or file read
+is pending, so it cannot overwrite a draft. Typing, Clear, Use example or a
+new analysis cancels any unfinished read. Clear permits opening the same file
+again. A successful import preserves the previous submitted snapshot and its
+filters, selected finding and technical disclosure until Analyze or Clear.
+
+The frontend does not display or store filenames, upload files, or persist file
+contents. Imported text has the same in-memory lifetime as pasted text. File
+references and bytes are released after reading; there is no encoding conversion.
+
 ## NER and privacy boundary
 
 NER weights are optional for startup. Without them, the detector runs its
