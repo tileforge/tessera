@@ -1,8 +1,10 @@
-import { act, cleanup, render, screen, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { DetectorSpan } from '../api/detector'
+import { LocaleContext } from '../i18n/context'
+import { messages } from '../i18n/messages'
 import { PseudonymizedPreview } from './PseudonymizedPreview'
 
 const spans: DetectorSpan[] = [{
@@ -12,11 +14,75 @@ const spans: DetectorSpan[] = [{
 
 afterEach(() => {
   cleanup()
+  if (vi.isFakeTimers()) vi.runOnlyPendingTimers()
+  vi.useRealTimers()
   vi.unstubAllGlobals()
   vi.restoreAllMocks()
 })
 
 describe('PseudonymizedPreview', () => {
+  it('downloads the exact accepted preview only on click and keeps clipboard feedback independent', async () => {
+    vi.useFakeTimers()
+    let payload: Blob | undefined
+    const createObjectURL = vi.fn((blob: Blob) => { payload = blob; return 'blob:preview' })
+    vi.stubGlobal('URL', { createObjectURL, revokeObjectURL: vi.fn() })
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } })
+    const view = render(<PseudonymizedPreview text={'🙂 Ada\r\n  '} spans={spans} />)
+    expect(createObjectURL).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Download TXT' }))
+    const reading = new Promise(resolve => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result)
+      reader.readAsText(payload!)
+    })
+    await vi.runAllTimersAsync()
+    expect(await reading).toBe('🙂 [PERSON_1]\r\n  ')
+    expect(screen.getByText('Download started.')).toBeVisible()
+    expect(writeText).not.toHaveBeenCalled()
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Copy preview' })) })
+    expect(screen.getByText('Preview copied.')).toBeVisible()
+    expect(screen.getByText('Download started.')).toBeVisible()
+    view.rerender(<PseudonymizedPreview text="Next result" spans={[]} />)
+    expect(screen.queryByText('Download started.')).not.toBeInTheDocument()
+    expect(createObjectURL).toHaveBeenCalledTimes(1)
+  })
+
+  it('releases a started download after the accepted preview unmounts', () => {
+    vi.useFakeTimers()
+    const revokeObjectURL = vi.fn()
+    vi.stubGlobal('URL', { createObjectURL: () => 'blob:unmounted', revokeObjectURL })
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    const view = render(<PseudonymizedPreview text="unchanged" spans={[]} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Download TXT' }))
+    view.unmount()
+    expect(document.querySelector('a[download]')).toBeNull()
+    vi.advanceTimersByTime(999)
+    expect(revokeObjectURL).not.toHaveBeenCalled()
+    vi.advanceTimersByTime(1)
+    expect(revokeObjectURL).toHaveBeenCalledExactlyOnceWith('blob:unmounted')
+  })
+
+  it('translates fixed download failure, retries unchanged no-findings text, and translates success', async () => {
+    vi.useFakeTimers()
+    const createObjectURL = vi.fn().mockImplementationOnce(() => { throw new Error('sensitive detail') }).mockReturnValue('blob:retry')
+    vi.stubGlobal('URL', { createObjectURL, revokeObjectURL: vi.fn() })
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    const content = <PseudonymizedPreview text="東京 unchanged" spans={[]} />
+    const view = render(<LocaleContext value={{ locale: 'en', messages: messages.en, setLocale: () => {} }}>{content}</LocaleContext>)
+    fireEvent.click(screen.getByRole('button', { name: 'Download TXT' }))
+    expect(screen.getByText('Could not start the download. Try again or copy the preview.')).toBeVisible()
+    expect(screen.queryByText(/sensitive detail/)).not.toBeInTheDocument()
+    view.rerender(<LocaleContext value={{ locale: 'ru', messages: messages.ru, setLocale: () => {} }}>{content}</LocaleContext>)
+    expect(screen.getByText('Не удалось начать скачивание. Попробуйте снова или скопируйте результат.')).toBeVisible()
+    fireEvent.click(screen.getByRole('button', { name: 'Скачать TXT' }))
+    expect(screen.getByText('Скачивание началось.')).toBeVisible()
+    expect(screen.getByText('Замены не выполнены.')).toBeVisible()
+    view.rerender(<LocaleContext value={{ locale: 'en', messages: messages.en, setLocale: () => {} }}>{content}</LocaleContext>)
+    expect(screen.getByText('Download started.')).toBeVisible()
+  })
+
   it('copies exactly the transformed snapshot only after an explicit click', async () => {
     const user = userEvent.setup()
     const writeText = vi.fn().mockResolvedValue(undefined)

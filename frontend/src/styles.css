@@ -280,6 +280,12 @@ textarea:focus-visible {
   gap: 0.75rem;
 }
 
+.preview-panel__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 .preview-note,
 .copy-status {
   margin: 0.75rem 0 0;
@@ -288,6 +294,7 @@ textarea:focus-visible {
   line-height: 1.55;
 }
 
+.preview-note:empty,
 .copy-status:empty {
   margin: 0;
 }

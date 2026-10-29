@@ -113,6 +113,16 @@ text to copy manually. Editing the input preserves the submitted result;
 Clear or another analysis removes it and its copy feedback. The frontend
 does not persist replacement maps or copy automatically.
 
+`Download TXT` / `Скачать TXT` starts a local download of the complete accepted
+preview as `tessera-pseudonymized.txt`. Its UTF-8 plain-text bytes preserve Unicode,
+whitespace and line endings exactly, without a BOM, extra newline or metadata.
+Filters and draft edits do not change the exported snapshot. No findings means
+the unchanged text is downloaded. Downloading requires an explicit click and
+makes no extra request, clipboard write or persistent browser storage change.
+The browser controls saving and cancellation; feedback confirms only that the
+download started. Clear or a new analysis resets download feedback. The file
+can still contain undetected personal data.
+
 Catalog rules cover emails and supported financial and tax identifiers. NER
 can detect names, locations, organizations and sensitive categories when it
 runs. These are capabilities, not guarantees; phone numbers are not currently
