@@ -32,6 +32,7 @@ th {
 }
 
 button:focus-visible,
+.detection-mode input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
   outline: 3px solid #2563eb;
@@ -186,6 +187,38 @@ textarea:focus-visible {
   flex-wrap: wrap;
   gap: 0.75rem;
   margin-top: 1rem;
+}
+
+.detection-mode {
+  min-width: 0;
+  margin: 1rem 0 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.75rem;
+  overflow-wrap: anywhere;
+}
+
+.detection-mode legend {
+  padding: 0 0.25rem;
+  font-weight: 700;
+}
+
+.analyzer-panel .detection-mode__selection {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin: 0;
+  cursor: pointer;
+}
+
+.detection-mode input {
+  flex: 0 0 auto;
+  accent-color: #2563eb;
+}
+
+.detection-mode:disabled .detection-mode__selection {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .analyzer-panel button,
@@ -607,6 +640,7 @@ textarea:focus-visible {
     color: #aab6ca;
   }
 
+  .detection-mode,
   .finding-filters,
   .finding-filters select,
   .finding-filters button,
@@ -711,6 +745,7 @@ textarea:focus-visible {
   .detection-details tbody tr:focus,
   .detection-details tr[aria-current='true'],
   select:focus-visible,
+  .detection-mode input:focus-visible,
   .finding-action:focus-visible,
   .technical-toggle:focus-visible {
     outline-color: #93c5fd;

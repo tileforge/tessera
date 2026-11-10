@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useRef, useState } from 'react'
 
-import { detectText, getHealth, type DetectResponse } from './api/detector'
+import { detectText, getHealth, type DetectRequest, type DetectResponse } from './api/detector'
 import { DetectionResults } from './components/DetectionResults'
 import { HealthStatus } from './components/HealthStatus'
 import { TextAnalyzer } from './components/TextAnalyzer'
@@ -23,6 +23,7 @@ type ActiveRequest = {
 
 type PendingAnalysis = ActiveRequest & {
   text: string
+  layers: DetectRequest['layers']
 }
 
 function resultScanStatus(layersRun: DetectResponse['layers_run'], messages: Messages) {
@@ -47,6 +48,7 @@ export function Playground() {
   const [result, setResult] = useState<AnalysisResult | null>(null)
   const [error, setError] = useState<Error | null>(null)
   const [inFlight, setInFlight] = useState(false)
+  const [nerEnabled, setNerEnabled] = useState(true)
   const txtImport = useTxtImport(!inFlight && text.trim().length === 0, setText)
   const generation = useRef(0)
   const activeRequest = useRef<ActiveRequest | null>(null)
@@ -63,7 +65,7 @@ export function Playground() {
       if (!request) {
         return Promise.reject(new DOMException('Analysis cancelled.', 'AbortError'))
       }
-      return detectText({ text: request.text }, request.controller.signal)
+      return detectText({ text: request.text, ...(request.layers && { layers: request.layers }) }, request.controller.signal)
     },
     onSuccess: (response, requestGeneration) => {
       const request = pendingAnalyses.current.get(requestGeneration)
@@ -106,6 +108,7 @@ export function Playground() {
       controller: new AbortController(),
       generation: generation.current + 1,
       text,
+      layers: nerEnabled ? undefined : ['deterministic'],
     }
     generation.current = request.generation
     activeRequest.current = { controller: request.controller, generation: request.generation }
@@ -173,6 +176,10 @@ export function Playground() {
         onAnalyze={analyze}
         onClear={clear}
         txtImport={txtImport}
+        nerSelection={{
+          enabled: nerEnabled,
+          onChange: (enabled) => { if (!activeRequest.current) setNerEnabled(enabled) },
+        }}
       />
       <section className="analysis-output">
         <div className="analysis-status" role="status" aria-live="polite" aria-atomic="true">

@@ -468,12 +468,12 @@ describe('local detector playground', () => {
     const user = userEvent.setup()
     renderApp()
 
-    await screen.findByText('Full detection active.')
+    await screen.findByText('Detector available: catalog rules and NER.')
     await user.type(screen.getByLabelText(/Text to inspect/i), 'No detected entities')
     await user.click(screen.getByRole('button', { name: /Analyze text/i }))
 
     expect(await screen.findByText('Limited scan: deterministic only — NER did not run.')).toBeVisible()
-    expect(screen.getByText('Full detection active.')).toBeVisible()
+    expect(screen.getByText('Detector available: catalog rules and NER.')).toBeVisible()
   })
 
   it('shows the result-specific full scan when deterministic and NER layers ran', async () => {
