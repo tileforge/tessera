@@ -21,7 +21,7 @@ describe('HealthStatus', () => {
     const status = screen.getByRole('status')
     expect(status).toHaveAttribute('data-state', 'unavailable')
     expect(screen.getByText(/Detector unavailable/i)).toBeVisible()
-    expect(screen.queryByText(/Deterministic detection active/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Detector available: catalog rules/i)).not.toBeInTheDocument()
   })
 
   it('explains that deterministic detection remains when NER is off', () => {
@@ -34,7 +34,7 @@ describe('HealthStatus', () => {
 
     const status = screen.getByRole('status')
     expect(status).toHaveAttribute('data-state', 'deterministic')
-    expect(screen.getByText(/Deterministic detection active/i)).toBeVisible()
+    expect(screen.getByText(/Detector available: catalog rules/i)).toBeVisible()
     expect(screen.getByText('weights unavailable')).toBeVisible()
   })
 
@@ -59,6 +59,6 @@ describe('HealthStatus', () => {
 
     const status = screen.getByRole('status')
     expect(status).toHaveAttribute('data-state', 'full')
-    expect(screen.getByText(/Full detection active/i)).toBeVisible()
+    expect(screen.getByText(/Detector available: catalog rules and NER/i)).toBeVisible()
   })
 })

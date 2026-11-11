@@ -203,11 +203,11 @@ it('localizes all evidence categories while preserving unknown entity/recognizer
 it('localizes health fallback but leaves server diagnostic text unchanged', async () => {
   server.use(http.get('/api/health', () => HttpResponse.json({ status: 'ok', ner: false, ner_off_reason: '<raw health Ω>' })))
   const user = await russian()
-  expect(await screen.findByText('Детерминированное обнаружение активно.')).toBeVisible()
+  expect(await screen.findByText('Детектор доступен: правила каталога.')).toBeVisible()
   expect(screen.getByText('<raw health Ω>')).toBeVisible()
   await user.selectOptions(screen.getByRole('combobox', { name: 'Язык / Language' }), 'en')
   expect(screen.getByText('<raw health Ω>')).toBeVisible()
-  expect(screen.getByText('Deterministic detection active.')).toBeVisible()
+  expect(screen.getByText('Detector available: catalog rules.')).toBeVisible()
 })
 
 it('localizes health unavailability and resets the analyzer in Russian', async () => {

@@ -59,6 +59,20 @@ references and bytes are released after reading; there is no encoding conversion
 
 ## NER and privacy boundary
 
+`Use NER when available` / `Использовать NER, если доступен` is checked by
+default. Catalog rules always run. The default request leaves `layers` omitted,
+allowing the detector to use all available layers. Unchecking sends
+`layers: ['deterministic']` for the next analysis, so NER will not run.
+
+The setting stays in memory for the current page and survives Clear, text edits,
+TXT import, language changes and health updates. Changing it does not analyze
+text or alter an accepted result, its filters, selection, preview or copy/download
+feedback. It is locked while analysis is pending; each request uses the layer
+choice captured when Analyze was pressed. Health describes available detector
+capabilities and does not select the mode or block Analyze. The result badge
+always describes the server's actual `layers_run`, independently of the next
+analysis setting.
+
 NER weights are optional for startup. Without them, the detector runs its
 deterministic layer only; `ner: false` is an honest, deterministic-only state
 reported by detector health. To enable the full layer, install the `ner` and
