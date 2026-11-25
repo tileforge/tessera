@@ -171,7 +171,7 @@ pub enum MappingError {
 /// a key in the journal.
 pub const MAX_ENTITY_TYPE: usize = 40;
 
-/// The entity types this gateway's detector declares — eight from its
+/// The entity types this gateway's detector declares — nine from its
 /// identifier catalog and fourteen from its NER configuration.
 ///
 /// The list lives here, and not behind a question to the detector, because the
@@ -180,7 +180,7 @@ pub const MAX_ENTITY_TYPE: usize = 40;
 /// type. `scripts/check_entity_types.py` fails CI when this list and the
 /// catalogs disagree, so adding a type stays a deliberate change in two places
 /// rather than a silent divergence.
-pub const ENTITY_TYPES: [&str; 22] = [
+pub const ENTITY_TYPES: [&str; 23] = [
     // Deterministic (identifiers.yaml) — also listed, and enforced, as
     // `DETERMINISTIC_TYPES` below. Something reads that partition now, so it
     // is no longer only a note to the next person editing this array.
@@ -192,6 +192,7 @@ pub const ENTITY_TYPES: [&str; 22] = [
     "FR_NIF",
     "FR_NIR",
     "IBAN",
+    "PHONE_NUMBER",
     // Quasi-identifiers (ner.yaml)
     "LOCATION",
     "ORG",
@@ -212,7 +213,7 @@ pub const ENTITY_TYPES: [&str; 22] = [
 
 /// The half of `ENTITY_TYPES` the detector decides from the value itself — a
 /// checksum, a format, a grammar — rather than from a model's reading of the
-/// text around it. These are `identifiers.yaml`'s eight; the other fourteen
+/// text around it. These are `identifiers.yaml`'s nine; the other fourteen
 /// come from `ner.yaml` and are a judgement about meaning.
 ///
 /// The distinction earns a list of its own because `proxy::mask_all` refuses a
@@ -223,9 +224,9 @@ pub const ENTITY_TYPES: [&str; 22] = [
 /// This is not a hand-kept subset. `scripts/check_entity_types.py` holds it to
 /// `identifiers.yaml` exactly and holds the complement to `ner.yaml` exactly,
 /// and `the_deterministic_types_are_a_subset_of_the_vocabulary` below holds it
-/// to `ENTITY_TYPES`, so a ninth identifier fails a check rather than landing
+/// to `ENTITY_TYPES`, so a tenth identifier fails a check rather than landing
 /// silently on the side of the predicate that does not refuse.
-pub const DETERMINISTIC_TYPES: [&str; 8] = [
+pub const DETERMINISTIC_TYPES: [&str; 9] = [
     "CH_AVS",
     "CREDIT_CARD",
     "DE_STEUERNUMMER",
@@ -234,6 +235,7 @@ pub const DETERMINISTIC_TYPES: [&str; 8] = [
     "FR_NIF",
     "FR_NIR",
     "IBAN",
+    "PHONE_NUMBER",
 ];
 
 /// What a span masks as when its type is not one of ours. The value is hidden
@@ -3933,9 +3935,11 @@ pub enum Leaf {
     /// — a label on a bare digit run is grounded in nothing, and the reasoning
     /// and the counter-evidence are both at the predicate in `proxy::mask_all`.
     ///
-    /// Even among the eight the refusal reaches only as far as the catalogs do,
-    /// and they have no telephone entity — a phone number written as a JSON
-    /// number is forwarded, exactly as it is in prose.
+    /// Even among the nine the refusal reaches only as far as the catalogs do.
+    /// `PHONE_NUMBER` is one of them, so a span of that type on a numeric leaf
+    /// refuses. A phone written as a JSON number still has no leading `+`,
+    /// which is what the catalog requires, so the detector emits no span and
+    /// the number is forwarded. That bound belongs to the catalog.
     Number(String),
 }
 
@@ -5089,6 +5093,59 @@ mod tests {
     }
 
     #[test]
+    fn a_phone_number_keeps_its_written_form() {
+        let number = "+1 (202) 555-0100";
+        let text = format!("Call {number} twice: {number}.");
+        let first = text.find(number).unwrap();
+        let second = text.rfind(number).unwrap();
+        let end = |at: usize| at + number.chars().count();
+        let mut mapping = Mapping::new();
+        let masked = mapping
+            .mask(
+                &text,
+                &[
+                    span("PHONE_NUMBER", first, end(first)),
+                    span("PHONE_NUMBER", second, end(second)),
+                ],
+            )
+            .unwrap();
+        assert_eq!(masked, "Call [PHONE_NUMBER_1] twice: [PHONE_NUMBER_1].");
+        assert_eq!(mapping.restore(&masked).unwrap(), text);
+    }
+
+    #[test]
+    fn a_phone_number_inside_a_json_string_keeps_its_punctuation() {
+        let number = "+1 (202) 555-0100";
+        let text = format!(r#"{{"tel":"{number}"}}"#);
+        let start = text.find(number).unwrap();
+        let mut mapping = Mapping::new();
+        let masked = mapping
+            .mask(
+                &text,
+                &[span("PHONE_NUMBER", start, start + number.chars().count())],
+            )
+            .unwrap();
+        assert_eq!(masked, r#"{"tel":"[PHONE_NUMBER_1]"}"#);
+        assert_eq!(mapping.restore(&masked).unwrap(), text);
+    }
+
+    #[test]
+    fn a_literal_phone_placeholder_does_not_take_the_numbers_token() {
+        let number = "+1 (202) 555-0100";
+        let text = format!("see [PHONE_NUMBER_1] and {number}");
+        let start = text.find(number).unwrap();
+        let mut mapping = Mapping::new();
+        let masked = mapping
+            .mask(
+                &text,
+                &[span("PHONE_NUMBER", start, start + number.chars().count())],
+            )
+            .unwrap();
+        assert_eq!(masked, "see [PHONE_NUMBER_1] and [PHONE_NUMBER_2]");
+        assert_eq!(mapping.restore(&masked).unwrap(), text);
+    }
+
+    #[test]
     fn reserving_a_literal_distinguishes_three_states_of_one_key() {
         // The whole predicate, named rather than counted. `by_placeholder` can
         // hold a key in exactly three ways, and only one of them is a hazard.
@@ -5643,7 +5700,7 @@ mod tests {
 
     #[test]
     fn the_two_halves_of_the_vocabulary_add_up() {
-        // The subset check above passes if someone adds a ninth identifier to
+        // The subset check above passes if someone adds a tenth identifier to
         // `ENTITY_TYPES` alone: it is still a superset. This is the half that
         // notices, because a type added to one list and not the other changes
         // which side of `proxy::mask_all`'s numeric refusal it lands on — and
@@ -5655,7 +5712,7 @@ mod tests {
         assert_eq!(
             ENTITY_TYPES.len() - DETERMINISTIC_TYPES.len(),
             14,
-            "ENTITY_TYPES is eight identifiers from identifiers.yaml and fourteen NER types \
+            "ENTITY_TYPES is nine identifiers from identifiers.yaml and fourteen NER types \
              from ner.yaml; if the detector gained one, decide deliberately which list it \
              belongs in and run `make check-entity-types`"
         );

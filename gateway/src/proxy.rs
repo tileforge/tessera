@@ -675,7 +675,7 @@ async fn mask_all(
                 // as the refusal itself, and the difference is the whole of it:
                 // a span whose type is in `ENTITY_TYPES` and not in
                 // `DETERMINISTIC_TYPES` — one of `ner.yaml`'s fourteen — leaves
-                // the number alone; a span of one of `identifiers.yaml`'s eight
+                // the number alone; a span of one of `identifiers.yaml`'s nine
                 // refuses; and a span of a type in **neither** half refuses too.
                 //
                 // *A label we know to be ungrounded on digits is not the same
@@ -724,7 +724,7 @@ async fn mask_all(
                 // one should widen this back to `!spans.is_empty()` and say so
                 // here.
                 //
-                // `EMAIL` is in the eight and cannot occur in a numeric leaf.
+                // `EMAIL` is in the nine and cannot occur in a numeric leaf.
                 // It stays: the set is "what the detector decides
                 // deterministically", and narrowing it to the subset someone
                 // judged capable of being numeric is the hand-maintained list
@@ -735,11 +735,11 @@ async fn mask_all(
                 // catalogs, and a list nothing holds to anything is the
                 // failure this predicate is being corrected for.
                 //
-                // The gap that remains is the vocabulary's, not the predicate's:
-                // there is no telephone entity in either catalog, so a phone
-                // number written as a JSON number is forwarded. That is the
-                // same gap it has in ordinary text, and detection-quality work
-                // rather than this slice's.
+                // `PHONE_NUMBER` is in the nine too. A span of that type on a
+                // numeric leaf refuses, the same as a card. A phone written as
+                // a JSON number still carries no leading `+`, so the catalog
+                // emits no span and the digits are forwarded. That bound is
+                // the catalog's.
                 //
                 // Refused here, before the masking loop rather than inside it:
                 // a refusal partway through would have allocated placeholders
@@ -2414,6 +2414,46 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn a_phone_number_is_masked_upstream_and_restored_for_the_client() {
+        let number = "+1 (202) 555-0100";
+        let text = format!("Call {number}.");
+        let start = text.find(number).unwrap();
+        let detector = detector_returning(json!([
+            {"entity_type": "PHONE_NUMBER", "start": start, "end": start + number.chars().count()}
+        ]))
+        .await;
+        let upstream = upstream_returning(
+            "/v1/chat/completions",
+            json!({"choices": [{"message": {"role": "assistant", "content": "Dial [PHONE_NUMBER_1]."}}]}),
+        )
+        .await;
+
+        let (status, body) = call(
+            state(&detector, &upstream),
+            "/v1/chat/completions",
+            json!({"model": "gpt", "messages": [{"role": "user", "content": text}]}),
+        )
+        .await;
+
+        let sent =
+            String::from_utf8(upstream.received_requests().await.unwrap()[0].body.clone()).unwrap();
+        assert!(
+            sent.contains("[PHONE_NUMBER_1]"),
+            "the phone was not masked as its own type: {sent}"
+        );
+        assert!(
+            !sent.contains(number),
+            "the original reached the upstream: {sent}"
+        );
+        assert_eq!(status, StatusCode::OK, "{body}");
+        let served: Value = serde_json::from_str(&body).expect("a JSON body");
+        assert_eq!(
+            served["choices"][0]["message"]["content"],
+            format!("Dial {number}.")
+        );
+    }
+
+    #[tokio::test]
     async fn a_value_returned_as_its_own_type_never_reaches_the_upstream() {
         // The leak this slice exists for, at the boundary that defines it: a
         // detector returning the span's own value as its `entity_type` would
@@ -2663,7 +2703,7 @@ mod tests {
     #[tokio::test]
     async fn an_unknown_entity_type_on_a_number_refuses_the_request() {
         // The exemption is for the fourteen NER types we know, not for every
-        // type that is not one of the eight. A version-skewed, misconfigured or
+        // type that is not one of the nine. A version-skewed, misconfigured or
         // compromised detector returning a name in neither catalog is saying
         // "personal data, of a kind you do not recognise", and on a *string*
         // leaf that has always been honoured — the value masks as
@@ -4195,6 +4235,38 @@ mod tests {
             "and the card never left the process"
         );
         assert_eq!(journal(&path)[0]["error"], "tool_numeric_personal_data");
+    }
+
+    #[tokio::test]
+    async fn a_phone_number_on_a_numeric_leaf_is_refused_and_not_stringified() {
+        let detector = detector_returning(json!([
+            {"entity_type": "PHONE_NUMBER", "start": 0, "end": 11}
+        ]))
+        .await;
+        let upstream = upstream_returning("/v1/messages", json!({"content": []})).await;
+        let (state, _dir, path) = state_with(&detector, &upstream, test_limits());
+        let (status, returned) = call(
+            state,
+            "/v1/messages",
+            json!({
+                "model": "claude",
+                "messages": [{"role": "assistant", "content": [
+                    {"type": "tool_use", "id": "t1", "name": "dial",
+                     "input": {"tel": 12_025_550_100u64}}
+                ]}]
+            }),
+        )
+        .await;
+        assert_eq!(status, StatusCode::BAD_REQUEST, "{returned}");
+        assert!(
+            upstream.received_requests().await.unwrap().is_empty(),
+            "the digits left the process"
+        );
+        assert_eq!(journal(&path)[0]["error"], "tool_numeric_personal_data");
+        assert!(
+            !returned.contains("\"12025550100\""),
+            "the number was rewritten as a string: {returned}"
+        );
     }
 
     #[tokio::test]

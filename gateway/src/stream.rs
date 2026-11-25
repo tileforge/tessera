@@ -2704,6 +2704,36 @@ mod restorer_tests {
         let tail = restorer.finish().unwrap();
         assert!(tail.contains("Hallo [no"), "text was swallowed: {tail}");
     }
+
+    #[test]
+    fn a_phone_placeholder_split_across_events_restores_the_original() {
+        let number = "+1 (202) 555-0100";
+        let mut mapping = Mapping::new();
+        let masked = mapping
+            .mask(
+                number,
+                &[Span {
+                    entity_type: "PHONE_NUMBER".into(),
+                    start: 0,
+                    end: number.chars().count(),
+                }],
+            )
+            .unwrap();
+        assert_eq!(masked, "[PHONE_NUMBER_1]");
+        let body = concat!(
+            "data: {\"choices\":[{\"index\":0,\"delta\":{\"content\":\"Call [PHONE_\"}}]}\n\n",
+            "data: {\"choices\":[{\"index\":0,\"delta\":{\"content\":\"NUMBER_1].\"}}]}\n\n",
+            "data: {\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"stop\"}]}\n\n",
+            "data: [DONE]\n\n",
+        );
+        let mut restorer = StreamRestorer::new(&OpenAi, &mapping);
+        let mut rendered = String::new();
+        for chunk in body.as_bytes().chunks(1) {
+            rendered.push_str(&restorer.push(chunk).unwrap());
+        }
+        rendered.push_str(&restorer.finish().unwrap());
+        assert_eq!(text_of(&rendered), format!("Call {number}."));
+    }
 }
 
 #[cfg(test)]
@@ -4151,15 +4181,21 @@ mod buffer_tests {
         // Re-recorded rather than widened. The number this test is named for is
         // still three *formats* — `@`, `&`, `/` — and PERSON is a fourth *type*
         // paying for a fourth character, which is the thing worth seeing.
+        //
+        // PHONE_NUMBER is a fifth type, paying for `+` and parentheses.
+        // `word_characters_only` admits neither, and every international number
+        // in the corpus carries `+`. Widening the allowlist would change the
+        // rule this test exists to hold still, so a streamed substitution into
+        // a bare position or a code region refuses the number. Prose does not.
         assert_eq!(
             kinds,
-            ["DE_STEUERNUMMER", "EMAIL", "ORG", "PERSON"]
+            ["DE_STEUERNUMMER", "EMAIL", "ORG", "PERSON", "PHONE_NUMBER"]
                 .into_iter()
                 .collect(),
             "the set of formats a region cannot carry changed: {:#?}",
             refused["region"]
         );
-        for kind in ["EMAIL", "DE_STEUERNUMMER"] {
+        for kind in ["EMAIL", "DE_STEUERNUMMER", "PHONE_NUMBER"] {
             let hit = refused["region"].iter().filter(|(k, _)| k == kind).count();
             assert_eq!(
                 hit, totals[kind],
