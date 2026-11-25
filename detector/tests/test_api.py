@@ -92,6 +92,28 @@ def test_requesting_an_unavailable_layer_is_503() -> None:
     assert "no weights" in response.json()["detail"]
 
 
+def test_deterministic_layer_returns_a_phone_number() -> None:
+    from tessera_detector.pipeline import build_detector
+
+    text = "Call +1 202-555-0100 today."
+    detector = build_detector(ner=False)
+    body = (
+        client(detector)
+        .post("/detect", json={"text": text, "layers": ["deterministic"]})
+        .json()
+    )
+    assert body["layers_run"] == ["deterministic"]
+    phones = [span for span in body["spans"] if span["entity_type"] == "PHONE_NUMBER"]
+    assert len(phones) == 1
+    assert text[phones[0]["start"] : phones[0]["end"]] == "+1 202-555-0100"
+    direct = [
+        (span.start, span.end)
+        for span in detector.deterministic_only(text)
+        if span.entity_type == "PHONE_NUMBER"
+    ]
+    assert direct == [(phones[0]["start"], phones[0]["end"])]
+
+
 def test_narrowing_to_the_deterministic_layer_is_allowed() -> None:
     body = (
         client(FakeDetector())

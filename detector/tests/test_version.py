@@ -180,6 +180,31 @@ def test_interpreter_id_changes_with_the_unicode_database(
     assert interpreter_id() != before
 
 
+def test_the_installed_phonenumbers_version_moves_detector_identity(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # phonenumbers decides which international numbers are valid. The
+    # deterministic digest already walks `[project.dependencies]`, so the
+    # installed version is covered without a hand-maintained package list.
+    import tessera_detector.models as models
+    from tessera_detector.models import dependency_digest
+    from tessera_detector.pipeline import PACKAGE_NAME
+
+    assert "phonenumbers" in models._transitive_requirements(PACKAGE_NAME)
+    before = dependency_digest(PACKAGE_NAME)
+    real = models.metadata.version
+
+    def bumped(name: str) -> str:
+        if models._normalize_distribution_name(name) == "phonenumbers":
+            return real(name) + ".mutated"
+        return real(name)
+
+    monkeypatch.setattr(models.metadata, "version", bumped)
+    after = dependency_digest(PACKAGE_NAME)
+    assert before != after
+    assert detector_version(f"m#{before}", "cat") != detector_version(f"m#{after}", "cat")
+
+
 def test_detector_version_changes_when_the_interpreter_does(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

@@ -147,6 +147,11 @@ def test_a_checksum_validator_rejects_every_single_digit_change() -> None:
             )
 
 
+def test_phone_number_is_structural_and_not_checksum_backed() -> None:
+    assert "phone_number" in VALIDATORS
+    assert "phone_number" not in CHECKSUM_VALIDATORS
+
+
 def test_the_structural_validator_is_excluded_because_it_cannot_do_that() -> None:
     """The other side of the boundary, which is what makes the set a decision.
 

@@ -116,3 +116,16 @@ identifiers:
       window: 6
       triggers: ["steuernummer", "st.-nr", "st-nr", "steuer-nr"]
     pattern: '\b(?<!\d[ ./])\d{13}(?![ ./]?\d)\b'
+
+  # No checksum. International form only: a leading '+' and a country code.
+  # `is_possible_number` is not acceptance. An extension may follow the match;
+  # it is outside the span. A separated digit run on either side rejects the
+  # whole candidate rather than a valid shorter slice of it.
+  - id: phone_number
+    entity_type: PHONE_NUMBER
+    tier: 1
+    validator: phone_number
+    confidence: 0.9
+    threshold: 0.5
+    specificity: 35
+    pattern: '(?<!\d)(?<!\d[ .\-])\+(?:\d{1,3}(?:[ .\-]?\(\d{1,6}\)(?:[ .\-](?:\(\d{1,6}\)|\d{1,14})){0,5}|[ .\-]\d{1,14}(?:[ .\-](?:\(\d{1,6}\)|\d{1,14})){0,5})|\d{4,15})(?![ .\-]?\d)(?!\w)'

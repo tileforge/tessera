@@ -7,6 +7,7 @@ lowers confidence. Validators must not raise on garbage input.
 
 from collections.abc import Callable
 
+import phonenumbers
 import schwifty
 import schwifty.exceptions
 from stdnum import luhn
@@ -26,6 +27,36 @@ def _clean(value: str) -> str:
 def _credit_card(value: str) -> bool:
     digits = _clean(value)
     return 14 <= len(digits) <= 19 and digits.isdigit() and luhn.is_valid(digits)
+
+
+def _phone_number(value: str) -> bool:
+    # No checksum exists. `is_possible_number` is not enough: a reserved range
+    # can be a plausible length and still not be a valid number.
+    if not value.startswith("+") or any(ch.isalpha() or ch in "\r\n" for ch in value):
+        return False
+    digits = 0
+    separators = 0
+    for ch in value[1:]:
+        if ch.isdigit():
+            digits += 1
+        elif ch in " .-()":
+            separators += 1
+        else:
+            return False
+    # E.164 holds at most 15 digits. Extra digits must fail the whole candidate:
+    # phonenumbers will not be asked to accept a shorter slice of it.
+    if not 1 <= digits <= 15 or separators > 16:
+        return False
+    try:
+        parsed = phonenumbers.parse(value, None)
+    except phonenumbers.NumberParseException:
+        return False
+    # `parse` keeps a valid base number and drops an extension. The candidate
+    # is accepted only when every digit belongs to that number.
+    e164 = phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.E164)
+    if "".join(ch for ch in value if ch.isdigit()) != e164[1:]:
+        return False
+    return phonenumbers.is_valid_number(parsed)
 
 
 def _iban(value: str) -> bool:
@@ -49,11 +80,14 @@ VALIDATORS: dict[str, Callable[[str], bool]] = {
     # Structural validation only — the Steuernummer has no checksum; the catalog
     # compensates with a low base confidence gated by context triggers.
     "de_stnr": lambda v: _de_stnr.is_valid(v),
+    # Structural validation only — a phone number has no checksum.
+    "phone_number": _phone_number,
 }
 
 
 # Validators that verify a checksum (not merely structure). Rules backed by these
 # must keep confidence 1.0 — the untouchable invariant is not configurable away.
-# de_stnr is structural only and is deliberately excluded: its rules declare a
-# sub-1.0 confidence and rely on context triggers.
-CHECKSUM_VALIDATORS: frozenset[str] = frozenset(VALIDATORS) - {"de_stnr"}
+# de_stnr and phone_number are structural only and are deliberately excluded.
+# The set is every validator except these names, so a new structural validator
+# joins the checksum set unless this line changes with it.
+CHECKSUM_VALIDATORS: frozenset[str] = frozenset(VALIDATORS) - {"de_stnr", "phone_number"}
