@@ -5,6 +5,8 @@ The 07700 900xxx drama range is only "possible" in phonenumbers, not valid.
 National numbers, a 00 prefix and extension suffixes are outside this version.
 """
 
+import time
+
 import pytest
 
 from tessera_detector.deterministic import DeterministicDetector
@@ -53,6 +55,7 @@ def _assert_phone(text: str, number: str) -> Span:
         "+44 (0)20 7946 0958",
         "+1(202)555-0100",
         "+1 (202)555-0100",
+        "+1(202)(555)0100",
     ],
 )
 def test_reserved_numbers_keep_their_written_form(number: str) -> None:
@@ -138,6 +141,18 @@ def test_fullwidth_digits_map_back_to_the_original_characters() -> None:
 def test_a_long_false_candidate_is_not_a_phone() -> None:
     assert _phones("+" + "-1234" * 80) == []
     assert _phones("+" + "1" * 200) == []
+
+
+def test_a_parenthesized_digit_run_is_not_repartitioned() -> None:
+    # Optional separators after ')' used to split one digit run into every
+    # composition of up to five chunks. This is that input: no phone, and the
+    # scan has to finish well under the multi-second partition.
+    text = ("+1(202)" + "1" * 60 + "a ") * 100
+    started = time.perf_counter()
+    spans = DeterministicDetector().detect(text)
+    elapsed = time.perf_counter() - started
+    assert [span for span in spans if span.entity_type == "PHONE_NUMBER"] == []
+    assert elapsed < 1
 
 
 def test_both_pipeline_branches_report_the_same_phone() -> None:
