@@ -433,8 +433,10 @@ test('highlights an international phone, exports the token, and keeps it when NE
     },
   }))
   await page.goto('/')
-  await expect(page.getByText('Deterministic detection active.', { exact: true })).toBeVisible()
-  await expect(page.getByText('NER is unavailable.', { exact: true })).toBeVisible()
+  const health = page.locator('.health-status')
+  await expect(health).toHaveAttribute('data-state', 'deterministic')
+  await expect(health).toContainText('Deterministic detection active.')
+  await expect(health).toContainText('NER is unavailable.')
   await page.getByLabel('Text to inspect').fill(source)
   await page.getByRole('button', { name: 'Analyze text' }).click()
   await expect(page.getByText('Limited scan: deterministic only — NER did not run.')).toBeVisible()
