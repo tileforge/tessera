@@ -435,7 +435,7 @@ test('highlights an international phone, exports the token, and keeps it when NE
   await page.goto('/')
   const health = page.locator('.health-status')
   await expect(health).toHaveAttribute('data-state', 'deterministic')
-  await expect(health).toContainText('Deterministic detection active.')
+  await expect(health).toContainText('Detector available: catalog rules.')
   await expect(health).toContainText('NER is unavailable.')
   await page.getByLabel('Text to inspect').fill(source)
   await page.getByRole('button', { name: 'Analyze text' }).click()
