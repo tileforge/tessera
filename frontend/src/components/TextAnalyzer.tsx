@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useId, useRef } from 'react'
 
 import type { TxtStatus } from '../files/txt'
 import { useI18n } from '../i18n/context'
@@ -12,6 +12,7 @@ type TextAnalyzerProps = {
   onAnalyze(): void
   onClear(): void
   txtImport?: { status: TxtStatus; selectFile(file: File): void }
+  nerSelection?: { enabled: boolean; onChange(enabled: boolean): void }
 }
 
 export function TextAnalyzer({
@@ -21,9 +22,11 @@ export function TextAnalyzer({
   onAnalyze,
   onClear,
   txtImport,
+  nerSelection,
 }: TextAnalyzerProps) {
   const { messages } = useI18n()
   const fileInput = useRef<HTMLInputElement>(null)
+  const modeDescription = useId()
   const fileDisabled = pending || text.trim().length !== 0 || txtImport?.status === 'reading'
   const importError = txtImport && !['idle', 'reading', 'loaded'].includes(txtImport.status)
   return (
@@ -34,6 +37,24 @@ export function TextAnalyzer({
         value={text}
         onChange={(event) => onTextChange(event.target.value)}
       />
+      {nerSelection && (
+        <fieldset className="detection-mode" disabled={pending}>
+          <legend>{messages.detectionMode}</legend>
+          <label className="detection-mode__selection">
+            <input
+              type="checkbox"
+              checked={nerSelection.enabled}
+              aria-describedby={`${modeDescription}-hint${nerSelection.enabled ? '' : ` ${modeDescription}-next`}`}
+              onChange={(event) => { if (!pending) nerSelection.onChange(event.target.checked) }}
+            />
+            {messages.useNer}
+          </label>
+          <p id={`${modeDescription}-hint`} className="preview-note">{messages.nerHint}</p>
+          {!nerSelection.enabled && (
+            <p id={`${modeDescription}-next`} className="preview-note">{messages.catalogOnlyNext}</p>
+          )}
+        </fieldset>
+      )}
       <div className="analyzer-panel__actions">
         <button type="button" disabled={pending || text.trim().length === 0} onClick={onAnalyze}>
           {messages.analyze}
