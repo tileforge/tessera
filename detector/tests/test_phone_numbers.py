@@ -47,6 +47,12 @@ def _assert_phone(text: str, number: str) -> Span:
         "+44-20-7946-0958",
         "+44.20.7946.0958",
         "+44 (20) 7946 0958",
+        "+4402079460958",
+        "+44 020 7946 0958",
+        "+44 (0) 20 7946 0958",
+        "+44 (0)20 7946 0958",
+        "+1(202)555-0100",
+        "+1 (202)555-0100",
     ],
 )
 def test_reserved_numbers_keep_their_written_form(number: str) -> None:
@@ -83,6 +89,10 @@ def test_a_number_at_the_end_of_the_line_is_closed() -> None:
         "ref 99 +1 202-555-0100",
         "Call +1 202-555-0100 99 today.",
         "Call +1202555010099 today.",
+        "Call +12025550100(99) today.",
+        "Call +1 202-555-0100/123 today.",
+        "Call +44020794609581 today.",
+        "Call +44 00 20 7946 0958 today.",
         "Call +1 202-555-0100abc today.",
         "Call +1 202\n555-0100 today.",
     ],

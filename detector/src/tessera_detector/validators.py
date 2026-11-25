@@ -34,27 +34,35 @@ def _phone_number(value: str) -> bool:
     # can be a plausible length and still not be a valid number.
     if not value.startswith("+") or any(ch.isalpha() or ch in "\r\n" for ch in value):
         return False
-    digits = 0
+    digit_count = 0
     separators = 0
     for ch in value[1:]:
         if ch.isdigit():
-            digits += 1
+            digit_count += 1
         elif ch in " .-()":
             separators += 1
         else:
             return False
     # E.164 holds at most 15 digits. Extra digits must fail the whole candidate:
     # phonenumbers will not be asked to accept a shorter slice of it.
-    if not 1 <= digits <= 15 or separators > 16:
+    if not 1 <= digit_count <= 15 or separators > 16:
         return False
     try:
         parsed = phonenumbers.parse(value, None)
     except phonenumbers.NumberParseException:
         return False
-    # `parse` keeps a valid base number and drops an extension. The candidate
-    # is accepted only when every digit belongs to that number.
+    # `parse` keeps a valid base number and drops an extension. It also drops
+    # one trunk `0` written after the country code (`+44 (0)20…`). The
+    # candidate is accepted when its digits are the E.164 digits, or those
+    # digits with that single trunk zero. Any other extra digit rejects it.
     e164 = phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.E164)
-    if "".join(ch for ch in value if ch.isdigit()) != e164[1:]:
+    digits = "".join(ch for ch in value if ch.isdigit())
+    e164_digits = e164[1:]
+    country = str(parsed.country_code)
+    trunk = ""
+    if e164_digits.startswith(country):
+        trunk = country + "0" + e164_digits[len(country) :]
+    if digits != e164_digits and digits != trunk:
         return False
     return phonenumbers.is_valid_number(parsed)
 
