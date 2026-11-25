@@ -1,3 +1,5 @@
+import { readFile } from 'node:fs/promises'
+
 import { expect, test, type Page } from '@playwright/test'
 
 // The e-mail is here for the layer that carries no checksum: appended, so the
@@ -77,7 +79,8 @@ test('explains coverage and copies the local preview through the real clipboard'
   await mockDetector(page)
   await page.goto('/')
   const coverage = page.getByRole('note', { name: 'Detection coverage' })
-  await expect(coverage).toContainText('Phone numbers are not currently supported.')
+  await expect(coverage).toContainText('international phone numbers written with +')
+  await expect(coverage).toContainText('national numbers are outside this coverage')
   await page.evaluate(() => navigator.clipboard.writeText('clipboard unchanged'))
   await page.getByLabel('Text to inspect').fill(inspectedText)
   await page.getByRole('button', { name: 'Analyze text' }).click()
@@ -355,7 +358,8 @@ for (const scheme of ['light', 'dark'] as const) {
     await expect(language).toBeFocused()
     await language.press('Tab')
     await expect(page.getByLabel('Текст для проверки')).toBeFocused()
-    await expect(page.getByRole('note', { name: 'Возможности обнаружения' })).toContainText('Номера телефонов пока не поддерживаются.')
+    await expect(page.getByRole('note', { name: 'Возможности обнаружения' })).toContainText('международные номера с +')
+    await expect(page.getByRole('note', { name: 'Возможности обнаружения' })).toContainText('национальные номера не покрываются')
     await page.getByRole('button', { name: 'Вставить пример' }).click()
     await expect(page.getByLabel('Текст для проверки')).toHaveValue(example)
     await expect(page.getByRole('button', { name: 'Вставить пример' })).toBeDisabled()
@@ -410,3 +414,37 @@ for (const scheme of ['light', 'dark'] as const) {
     await expect(page.getByRole('table')).toHaveCount(0)
   })
 }
+
+test('highlights an international phone, exports the token, and keeps it when NER is off', async ({ page }) => {
+  const number = '+1 (202) 555-0100'
+  const source = `Call ${number}.`
+  const expected = 'Call [PHONE_NUMBER_1].'
+  await page.route('**/api/health', (route) => route.fulfill({
+    json: { status: 'ok', ner: false, ner_off_reason: null },
+  }))
+  await page.route('**/api/detect', (route) => route.fulfill({
+    json: {
+      spans: [{
+        entity_type: 'PHONE_NUMBER', start: 5, end: 22, confidence: 0.9,
+        recognizer: 'catalog:phone_number', tier: 1, boosted: false,
+      }],
+      layers_run: ['deterministic'],
+      version: 'test-version',
+    },
+  }))
+  await page.goto('/')
+  await expect(page.getByText('Deterministic detection active.', { exact: true })).toBeVisible()
+  await expect(page.getByText('NER is unavailable.', { exact: true })).toBeVisible()
+  await page.getByLabel('Text to inspect').fill(source)
+  await page.getByRole('button', { name: 'Analyze text' }).click()
+  await expect(page.getByText('Limited scan: deterministic only — NER did not run.')).toBeVisible()
+  await expect(page.locator('.highlighted-result').getByRole('mark')).toHaveText(number)
+  const preview = page.getByRole('region', { name: 'Pseudonymized preview' })
+  await expect(preview.locator('.preview-text')).toHaveText(expected)
+  await expect(page.getByRole('cell', { name: 'Deterministic pattern' })).toBeVisible()
+  const download = page.waitForEvent('download')
+  await preview.getByRole('button', { name: 'Download TXT' }).click()
+  const saved = await readFile((await (await download).path())!)
+  expect(saved).toEqual(Buffer.from(expected, 'utf8'))
+  expect(saved.includes(number)).toBe(false)
+})

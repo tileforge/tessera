@@ -324,7 +324,7 @@ refused rather than masked, because replacing `4111111111111111` with `[CREDIT_C
 turns a JSON number into a string and a schema that declared a number may reject it; that
 refusal steps aside for exactly one thing: a span carrying one of the fourteen NER types,
 since an NER label on a bare digit run is a judgement about meaning where there is no
-meaning to judge, so a number those labels alone find is forwarded. The eight deterministic
+meaning to judge, so a number those labels alone find is forwarded. The nine deterministic
 identifiers refuse, and so does a type in **neither** half — a label this gateway does not
 recognize is a detector reporting personal data of a kind nobody here can weigh, which is
 not the same thing as a label known to be ungrounded on digits. And a
@@ -340,7 +340,7 @@ kept its work. Nothing is kept for a request without a credential, under
 did not mark complete, or after an eviction, and such a request starts over each time.
 
 Placeholders carry the type the detector reported, but only when it is one this gateway
-declares — twenty-two of them, the catalog's eight deterministic identifiers plus the
+declares — twenty-three of them, the catalog's nine deterministic identifiers plus the
 fourteen the NER layer can label. A type outside that list is masked as `[REDACTED_1]`
 instead. Syntax cannot tell a type name from a value shaped like one: a detector returning
 `WEBER` as the type of a span covering `WEBER` would otherwise put that value in the token

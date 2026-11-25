@@ -69,6 +69,29 @@ describe('finding filters', () => {
     expect(within(rows()[0]).getByText('Y')).toBeVisible()
   })
 
+  it('filters a phone number as a deterministic pattern and keeps its own token', async () => {
+    const number = '+1 (202) 555-0100'
+    const submitted = `Call ${number} twice: ${number}.`
+    const start = submitted.indexOf(number)
+    const second = submitted.lastIndexOf(number)
+    const phone = (at: number) => ({
+      entity_type: 'PHONE_NUMBER', start: at, end: at + number.length,
+      confidence: 0.9, recognizer: 'catalog:phone_number', tier: 1, boosted: false,
+    })
+    server.use(http.post('/api/detect', () => HttpResponse.json({
+      spans: [phone(start), phone(second)],
+      layers_run: ['deterministic'],
+      version: 'test',
+    })))
+    const user = await analyze(submitted)
+    await user.selectOptions(typeFilter(), typeOption('PHONE_NUMBER'))
+    expect(rows()).toHaveLength(2)
+    expect(within(rows()[0]).getByText('Deterministic pattern')).toBeVisible()
+    expect(within(screen.getByRole('region', { name: 'Pseudonymized preview' })).getByText(
+      'Call [PHONE_NUMBER_1] twice: [PHONE_NUMBER_1].',
+    )).toBeVisible()
+  })
+
   it('keeps arbitrary, empty and all-like types distinct from all and escapes labels', async () => {
     const user = await analyze()
     for (const [label, fragment] of [['__proto__', 'X'], ['(empty type)', 'Y'], ['all', 'Z'], ['<b>東京</b>', 'Q']]) {

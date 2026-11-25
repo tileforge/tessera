@@ -125,3 +125,34 @@ test('downloads unchanged no-findings results, safely retries a failure and rese
   expect(calls).toBe(2)
   expect(downloads).toHaveLength(2)
 })
+
+test('downloads a masked international phone and leaves the original number out of the file', async ({ page }) => {
+  const number = '+1 (202) 555-0100'
+  const source = `Call ${number}.`
+  const expected = 'Call [PHONE_NUMBER_1].'
+  await page.route('**/api/health', (route) => route.fulfill({
+    json: { status: 'ok', ner: false, ner_off_reason: null },
+  }))
+  await page.route('**/api/detect', (route) => {
+    expect(route.request().postDataJSON()).toEqual({ text: source })
+    return route.fulfill({
+      json: {
+        spans: [{
+          entity_type: 'PHONE_NUMBER', start: 5, end: 22, confidence: 0.9,
+          recognizer: 'catalog:phone_number', tier: 1, boosted: false,
+        }],
+        layers_run: ['deterministic'],
+        version: 'test',
+      },
+    })
+  })
+  await page.goto('/')
+  await page.getByLabel('Text to inspect').fill(source)
+  await page.getByRole('button', { name: 'Analyze text' }).click()
+  await expect(page.getByText('Limited scan: deterministic only — NER did not run.')).toBeVisible()
+  await expect(page.locator('.highlighted-result').getByRole('mark')).toHaveText(number)
+  await expect(page.locator('.preview-text')).toHaveText(expected)
+  const download = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'Download TXT' }).click()
+  await assertDownloadBytes(await download, expected)
+})

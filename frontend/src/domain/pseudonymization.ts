@@ -5,7 +5,7 @@ import { buildHighlightedSegments } from './detections'
 // become part of the text the user copies.
 const supportedTypes = new Set([
   'IBAN', 'CREDIT_CARD', 'CH_AVS', 'FR_NIR', 'DE_STEUER_ID', 'FR_NIF', 'EMAIL',
-  'DE_STEUERNUMMER', 'PERSON', 'LOCATION', 'ORG', 'HEALTH', 'BIOMETRIC', 'GENETIC',
+  'DE_STEUERNUMMER', 'PHONE_NUMBER', 'PERSON', 'LOCATION', 'ORG', 'HEALTH', 'BIOMETRIC', 'GENETIC',
   'ETHNICITY', 'POLITICAL_AFFILIATION', 'POLITICAL_OPINION', 'RELIGION', 'TRADE_UNION',
   'SEXUAL_ORIENTATION', 'PHILOSOPHICAL_BELIEF', 'SEX_LIFE',
 ])

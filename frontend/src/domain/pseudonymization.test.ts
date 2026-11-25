@@ -30,6 +30,24 @@ describe('buildPseudonymizedText', () => {
     ])).toBe('[PERSON_2] [PERSON_4] [PERSON_2] [PERSON_1] [PERSON_3]')
   })
 
+  it('gives a phone number its own token and reuses the exact spelling', () => {
+    const number = '+1 (202) 555-0100'
+    const text = `Call ${number} twice: ${number}.`
+    const first = text.indexOf(number)
+    const second = text.lastIndexOf(number)
+    const phone = (start: number) => span(start, start + number.length, 'PHONE_NUMBER')
+    expect(buildPseudonymizedText(text, [phone(first), phone(second)]))
+      .toBe('Call [PHONE_NUMBER_1] twice: [PHONE_NUMBER_1].')
+  })
+
+  it('skips a literal phone placeholder already written in the text', () => {
+    const number = '+1 (202) 555-0100'
+    const text = `see [PHONE_NUMBER_1] and ${number}`
+    const start = text.indexOf(number)
+    expect(buildPseudonymizedText(text, [span(start, start + number.length, 'PHONE_NUMBER')]))
+      .toBe('see [PHONE_NUMBER_1] and [PHONE_NUMBER_2]')
+  })
+
   it.each(['SECRET_VALUE', 'Ada private metadata', 'PERSON]\n[unsafe', '', 'person'])(
     'uses ENTITY for unsupported or unsafe label %j', (label) => {
       expect(buildPseudonymizedText('Ada', [span(0, 3, label)])).toBe('[ENTITY_1]')

@@ -1,10 +1,12 @@
 # Identifier catalog — data, not code (MVP roadmap: the community growth lever).
 #
 # Each entry pairs a candidate pattern (matched against normalized text) with a named
-# checksum validator from tessera_detector.validators. A candidate that fails its
-# validator produces no span at all (REQ-2). Patterns may over-match; validators keep
-# precision. Adding a country identifier means adding an entry here plus, if needed,
-# one validator function.
+# validator from tessera_detector.validators, or with no validator when the pattern
+# is the whole check. A candidate that fails its validator produces no span at all
+# (REQ-2). Patterns may over-match; validators keep precision. A checksum-backed
+# rule declares confidence 1.0. A structural rule, such as the Steuernummer or an
+# international phone number, stays below 1.0. Adding a country identifier means
+# adding an entry here plus, if needed, one validator function.
 
 version: 1
 

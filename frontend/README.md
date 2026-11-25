@@ -123,10 +123,13 @@ The browser controls saving and cancellation; feedback confirms only that the
 download started. Clear or a new analysis resets download feedback. The file
 can still contain undetected personal data.
 
-Catalog rules cover emails and supported financial and tax identifiers. NER
-can detect names, locations, organizations and sensitive categories when it
-runs. These are capabilities, not guarantees; phone numbers are not currently
-supported. This preview does not establish full anonymization or reproduce
+Catalog rules cover emails, supported financial and tax identifiers, and
+international phone numbers written with `+`. A country is not guessed from
+the text, so national numbers and a `00` prefix are not detected. An extension
+after the number may remain visible. A match does not mean a subscriber
+exists, and the check stays on this machine. NER can detect names, locations,
+organizations and sensitive categories when it runs. These are capabilities,
+not guarantees. This preview does not establish full anonymization or reproduce
 gateway session semantics.
 
 The root `docker-compose.yml` does not publish detector port `8000`; only the
