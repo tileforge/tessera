@@ -11,8 +11,10 @@ has no checksum.
 `PHONE_NUMBER` matches an international number written with `+`. Validation
 asks whether that number is valid for its country code, not merely a plausible
 length. The surrounding text does not supply a country, so a national number
-and a `00` prefix are left alone. An extension after the match is outside the
-span. The check is local: no network call, and no claim that a subscriber exists.
+and a `00` prefix are left alone. A labeled extension written after a space
+(`ext`, `extension`, `доб`, `anexo`) is part of the span, digits included.
+A letter glued to the number, including `x123`, is not. The check is local:
+no network call, and no claim that a subscriber exists.
 
 ```
 uv sync

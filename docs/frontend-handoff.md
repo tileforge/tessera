@@ -112,8 +112,8 @@ the product is trusted for.**
   `EMAIL` and `DE_STEUERNUMMER` have no checksum, and neither does
   `PHONE_NUMBER`: an international number written with `+` is accepted when
   the library calls it valid for that country code. A country is not guessed,
-  national numbers and a `00` prefix are not detected, an extension may follow
-  the span, and a match does not mean a subscriber exists. Nine types:
+  national numbers and a `00` prefix are not detected, a labeled extension
+  such as `ext. 123` is part of the span, and a match does not mean a subscriber exists. Nine types:
   `CH_AVS`, `CREDIT_CARD`, `DE_STEUERNUMMER`, `DE_STEUER_ID`, `EMAIL`,
   `FR_NIF`, `FR_NIR`, `IBAN`, `PHONE_NUMBER`. Catalog:
   `detector/src/tessera_detector/catalog/identifiers.yaml`.

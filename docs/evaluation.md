@@ -85,8 +85,9 @@ orientation — each clause gets its own label.
 > Perfect scores on the catalog types mean the deterministic layer covers its own
 > catalog, nothing more. Checksum-backed entries are checksum-valid identifiers
 > with clean formatting. `PHONE_NUMBER` has no checksum: the corpus annotates
-> international numbers written with `+`, and a perfect row does not cover
-> national numbers or extensions. The numbers become meaningful as the corpus
+> international numbers written with `+`, including a labeled extension such
+> as `ext. 123`. A perfect row does not cover national numbers or a letter
+> glued to the number. The numbers become meaningful as the corpus
 > grows adversarial cases — noisy formatting, near-misses, uncovered types.
 >
 > Article 9 is gated on **coverage**, not on per-category recall, and the ETHNICITY row

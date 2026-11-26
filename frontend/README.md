@@ -139,9 +139,9 @@ can still contain undetected personal data.
 
 Catalog rules cover emails, supported financial and tax identifiers, and
 international phone numbers written with `+`. A country is not guessed from
-the text, so national numbers and a `00` prefix are not detected. An extension
-after the number may remain visible. A match does not mean a subscriber
-exists, and the check stays on this machine. NER can detect names, locations,
+the text, so national numbers and a `00` prefix are not detected. A labeled
+extension such as `ext. 123` is masked with the number. A match does not mean a
+subscriber exists, and the check stays on this machine. NER can detect names, locations,
 organizations and sensitive categories when it runs. These are capabilities,
 not guarantees. This preview does not establish full anonymization or reproduce
 gateway session semantics.

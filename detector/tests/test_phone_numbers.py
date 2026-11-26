@@ -2,7 +2,8 @@
 
 Reserved examples only — NANPA 555-0100..0199 and Ofcom 020 7946 0xxx.
 The 07700 900xxx drama range is only "possible" in phonenumbers, not valid.
-National numbers, a 00 prefix and extension suffixes are outside this version.
+National numbers and a 00 prefix are outside this version.
+A labeled extension is part of the span. A letter glued on, including x123, is not.
 """
 
 import time
@@ -97,6 +98,8 @@ def test_a_number_at_the_end_of_the_line_is_closed() -> None:
         "Call +44020794609581 today.",
         "Call +44 00 20 7946 0958 today.",
         "Call +1 202-555-0100abc today.",
+        "Call +1 202-555-0100x123 now.",
+        "Call +12025550100ext.123 now.",
         "Call +1 202\n555-0100 today.",
     ],
 )
@@ -104,11 +107,30 @@ def test_non_international_and_overlong_runs_are_not_phones(text: str) -> None:
     assert _phones(text) == []
 
 
-def test_an_extension_leaves_the_suffix_outside_the_span() -> None:
-    # First version masks the international number and may leave the extension.
-    text = "Call +1 202-555-0100 ext. 123 now."
-    span = _assert_phone(text, US)
-    assert text[span.end :].startswith(" ext. 123")
+@pytest.mark.parametrize(
+    "suffix",
+    [
+        " ext. 123",
+        " ext 123",
+        " ext.123",
+        " extension 123",
+        " extension: 123",
+        " EXT. 123",
+        " доб. 123",
+        " anexo 123",
+    ],
+)
+def test_a_labeled_extension_is_inside_the_span(suffix: str) -> None:
+    text = f"Call {US}{suffix} now."
+    span = _assert_phone(text, f"{US}{suffix}")
+    assert text[span.end :].startswith(" now.")
+
+
+def test_a_trunk_zero_number_keeps_its_labeled_extension() -> None:
+    number = "+44 (0) 20 7946 0958 ext. 99"
+    text = f"Call {number} now."
+    span = _assert_phone(text, number)
+    assert text[span.end :].startswith(" now.")
 
 
 def test_cyrillic_and_an_emoji_do_not_move_the_span() -> None:

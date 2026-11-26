@@ -31,6 +31,7 @@ it('fills only empty input with the exact fictional German example without a req
   expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Проверка текста')
   expect(screen.getByRole('note', { name: 'Возможности обнаружения' })).toHaveTextContent('международные номера с +')
   expect(screen.getByRole('note', { name: 'Возможности обнаружения' })).toHaveTextContent('национальные номера не покрываются')
+  expect(screen.getByRole('note', { name: 'Возможности обнаружения' })).toHaveTextContent('ext. 123')
   expect(screen.getByText(/Пример вымышленный и написан на немецком/)).toBeVisible()
   const input = screen.getByLabelText('Текст для проверки')
   const fill = screen.getByRole('button', { name: 'Вставить пример' })
