@@ -46,7 +46,7 @@ from .spans import Span
 DEFAULT_MODEL_ID = f"{MODEL_NAME}@{HF_REVISION}"
 
 # This package's own installed distribution name — the root whose declared
-# `[project.dependencies]` (pydantic, python-stdnum, schwifty, pyyaml)
+# `[project.dependencies]` (pydantic, python-stdnum, schwifty, pyyaml, phonenumbers)
 # `dependency_digest` walks to cover the deterministic layer's own
 # third-party validators. Naming schwifty and stdnum here by hand would
 # repeat, a fifth time in this slice, the exact mistake REQUIRED_ARTIFACTS,

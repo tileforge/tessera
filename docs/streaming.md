@@ -203,7 +203,9 @@ differs by place because the ways out do:
 - **in a bare position** — inside a container but outside any string, only alphanumerics and
   a few word marks pass. Nothing weaker works: `{safe:false,value:[PERSON_1]}` is valid JSON5
   and `null,admin:true` adds a member out of characters that must stay inert, because an
-  e-mail address needs `@` and a date needs `:`. **Containers are counted, not flagged** — a
+  e-mail address needs `@` and a date needs `:`. A phone number written with `+`
+  or parentheses fails the same allowlist, so a streamed substitution there is
+  refused; prose still restores the number. **Containers are counted, not flagged** — a
   reply is full of JSON snippets, and a flag that never came down refused a name after every
   one of them;
 - **in prose** — nothing. No structure has been seen, so there is nothing to close, and prose

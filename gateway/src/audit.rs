@@ -15,7 +15,7 @@
 //! field that made it false is the one field whose keys come from outside the
 //! perimeter: `types`. It admitted anything the detector shouted in capitals,
 //! which is a grammar a submitted value can be dressed in. It now admits
-//! twenty-two names — see `is_entity_type` — and the sentence above is a claim
+//! twenty-three names — see `is_entity_type` — and the sentence above is a claim
 //! the code makes rather than one it asserts.
 
 use std::collections::BTreeMap;
@@ -65,7 +65,7 @@ const UNVALIDATED_TYPE: &str = "unvalidated";
 /// a separate key — so the channel was as wide as the request, on an ordinary
 /// 200 whose client response was correct and whose provider saw
 /// `[REDACTED_1]`. The vocabulary is the check that asks about the value:
-/// there are twenty-two names it may be, and they are declared here rather
+/// there are twenty-three names it may be, and they are declared here rather
 /// than by the detector for the reason `ENTITY_TYPES` gives.
 ///
 /// The grammar is kept rather than replaced. It is strictly redundant while

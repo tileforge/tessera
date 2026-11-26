@@ -83,9 +83,11 @@ regulation names philosophical beliefs beside religious ones and sex life beside
 orientation — each clause gets its own label.
 
 > Perfect scores on the catalog types mean the deterministic layer covers its own
-> catalog, nothing more: those corpus entries are checksum-valid identifiers with clean
-> formatting. The numbers become meaningful as the corpus grows adversarial cases —
-> noisy formatting, near-misses, uncovered types.
+> catalog, nothing more. Checksum-backed entries are checksum-valid identifiers
+> with clean formatting. `PHONE_NUMBER` has no checksum: the corpus annotates
+> international numbers written with `+`, and a perfect row does not cover
+> national numbers or extensions. The numbers become meaningful as the corpus
+> grows adversarial cases — noisy formatting, near-misses, uncovered types.
 >
 > Article 9 is gated on **coverage**, not on per-category recall, and the ETHNICITY row
 > shows why: the model reads "maghrébine" as religion rather than ethnicity. That span is

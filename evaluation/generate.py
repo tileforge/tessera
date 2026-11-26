@@ -351,6 +351,97 @@ def _tokenize(template: str) -> list[str]:
     return [t for t in re.split(r"(\{\w+\})", template) if t]
 
 
+def _phone_document(
+    doc_id: str,
+    lang: str,
+    before: str,
+    number: str,
+    after: str,
+    *,
+    annotate: bool,
+) -> dict[str, object]:
+    text = f"{before}{number}{after}"
+    entities: list[dict[str, object]] = []
+    if annotate:
+        start = len(before)
+        entities.append(
+            {"entity_type": "PHONE_NUMBER", "start": start, "end": start + len(number)}
+        )
+    return {"id": doc_id, "lang": lang, "text": text, "entities": entities}
+
+
+# Reserved examples (NANPA 555-01xx, Ofcom 020 7946 0xxx), not subscriber numbers.
+# Drawn from a fixed list so this does not consume the identifier RNG: a draw
+# there would reshuffle every other value in the corpus.
+_PHONE_DOCUMENTS: list[dict[str, object]] = [
+    _phone_document(
+        "phone-0000",
+        "fr",
+        "Contact: ",
+        "+1 202-555-0100",
+        ".",
+        annotate=True,
+    ),
+    _phone_document(
+        "phone-0001",
+        "de",
+        "Erreichbar unter ",
+        "+44 20 7946 0958",
+        ".",
+        annotate=True,
+    ),
+    {
+        "id": "phone-0002",
+        "lang": "mixed",
+        "text": "Call +1 (202) 555-0100 or +44.20.7946.0999 today.",
+        "entities": [
+            {"entity_type": "PHONE_NUMBER", "start": 5, "end": 22},
+            {"entity_type": "PHONE_NUMBER", "start": 26, "end": 42},
+        ],
+    },
+    _phone_document(
+        "phone-0003",
+        "fr",
+        "Composez le ",
+        "+12025550101",
+        " ext. 123.",
+        annotate=True,
+    ),
+    _phone_document(
+        "phone-clean-0000",
+        "clean",
+        "Appelez le ",
+        "202-555-0100",
+        " dans la journée.",
+        annotate=False,
+    ),
+    _phone_document(
+        "phone-clean-0001",
+        "clean",
+        "Nationale Form ",
+        "020 7946 0958",
+        ".",
+        annotate=False,
+    ),
+    _phone_document(
+        "phone-clean-0002",
+        "clean",
+        "Prefix ",
+        "00 1 202 555 0100",
+        " is not international form.",
+        annotate=False,
+    ),
+    _phone_document(
+        "phone-clean-0003",
+        "clean",
+        "Date ",
+        "2026-11-25",
+        ", order 12345678901234.",
+        annotate=False,
+    ),
+]
+
+
 def main() -> None:
     rng = random.Random(SEED)
     # Its own stream, so choosing a pool name never perturbs the sequence that
@@ -372,6 +463,7 @@ def main() -> None:
         documents.append(
             {"id": f"clean-{i:04d}", "lang": "clean", "text": template, "entities": []}
         )
+    documents.extend(_PHONE_DOCUMENTS)
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     with OUTPUT.open("w", encoding="utf-8") as handle:
         for doc in documents:

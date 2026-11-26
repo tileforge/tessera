@@ -16,10 +16,11 @@ export class InvalidDetectionResponseError extends Error {
 /**
  * Which kind of evidence a span carries.
  *
- * **Two catalog rules carry no checksum**, and calling every `catalog:` match
+ * **Three catalog rules carry no checksum**, and calling every `catalog:` match
  * "checksum verified" told the user something the detector never claimed: an
- * e-mail has no checksum to verify, and the German Steuernummer's validator is
- * structural. Both say so in `identifiers.yaml` beside the rules themselves.
+ * e-mail has no checksum to verify, the German Steuernummer's validator is
+ * structural, and a phone number has no checksum either. They say so in
+ * `identifiers.yaml` beside the rules themselves.
  *
  * The distinction is already in the response rather than in knowledge this
  * client would have to keep in step with a catalog it does not ship: a rule

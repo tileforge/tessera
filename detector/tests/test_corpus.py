@@ -86,6 +86,16 @@ def test_corpus_covers_every_article_9_category_in_each_language(language: str) 
     assert not missing, f"{language} corpus has no gold for {sorted(missing)}"
 
 
+def test_corpus_annotates_international_phones_only() -> None:
+    docs = {doc["id"]: doc for doc in _documents()}
+    positive = docs["phone-0000"]
+    number = "+1 202-555-0100"
+    entity = positive["entities"][0]
+    assert entity["entity_type"] == "PHONE_NUMBER"
+    assert positive["text"][entity["start"] : entity["end"]] == number
+    assert docs["phone-clean-0000"]["entities"] == []
+
+
 def test_corpus_keeps_entity_free_documents() -> None:
     # At threshold 0.20 a corpus of positives only would hide the noise the
     # threshold buys, and the reported precision would mean nothing.

@@ -33,6 +33,7 @@ describe('classifyRecognizer', () => {
     // claimed.
     expect(classifyRecognizer('catalog:email', 0.95)).toBe('pattern')
     expect(classifyRecognizer('catalog:de_steuernummer', 0.8)).toBe('pattern')
+    expect(classifyRecognizer('catalog:phone_number', 0.9)).toBe('pattern')
   })
 
   it('classifies ner recognizers as ner', () => {

@@ -105,12 +105,18 @@ banner or a log.
 **Detection has two layers, and collapsing them into one badge throws away what
 the product is trusted for.**
 
-- **Deterministic** — a regex finds a *candidate*, and a named checksum
-  validator decides. A candidate that fails its validator produces no span at
-  all. `4111111111111111` is a credit card because it passes Luhn;
-  `9007199254740991` is not, because it fails. Eight types: `CH_AVS`,
-  `CREDIT_CARD`, `DE_STEUERNUMMER`, `DE_STEUER_ID`, `EMAIL`, `FR_NIF`,
-  `FR_NIR`, `IBAN`. Catalog: `detector/src/tessera_detector/catalog/identifiers.yaml`.
+- **Deterministic** — a regex finds a *candidate*, and a named validator
+  decides. A candidate that fails its validator produces no span at all.
+  Checksum-backed rules declare confidence 1.0: `4111111111111111` is a credit
+  card because it passes Luhn; `9007199254740991` is not, because it fails.
+  `EMAIL` and `DE_STEUERNUMMER` have no checksum, and neither does
+  `PHONE_NUMBER`: an international number written with `+` is accepted when
+  the library calls it valid for that country code. A country is not guessed,
+  national numbers and a `00` prefix are not detected, an extension may follow
+  the span, and a match does not mean a subscriber exists. Nine types:
+  `CH_AVS`, `CREDIT_CARD`, `DE_STEUERNUMMER`, `DE_STEUER_ID`, `EMAIL`,
+  `FR_NIF`, `FR_NIR`, `IBAN`, `PHONE_NUMBER`. Catalog:
+  `detector/src/tessera_detector/catalog/identifiers.yaml`.
 - **NER** — a zero-shot model (`gliner_multi-v2.1`, pinned by revision, run
   under onnxruntime) reading meaning rather than form. Fourteen types: `PERSON`,
   `LOCATION`, `ORG`, and eleven Article 9 categories with no format at all —
@@ -122,8 +128,10 @@ A buyer evaluating this needs to see the difference — "this passed a checksum"
 and "a model thought this looked like a person" are different claims, and
 showing them identically is the one design mistake that would matter.
 
-On a partial overlap the catalog wins: identifiers carry specificity 40–90,
-model guesses 10–35.
+On a partial overlap a checksum-backed catalog span keeps its identity.
+Checksum identifiers carry specificity 40–90 and model guesses 10–35.
+`PHONE_NUMBER` is specificity 35 and confidence 0.9, so it does not outrank a
+checksum span.
 
 ## What will confuse you in the first hour
 
@@ -145,8 +153,9 @@ shorter path — you do not need the gateway service at all.
   that is a change to the detector, and it goes through the same review as
   anything else on the backend side. Raise it; do not add it. `docs/api/openapi.json`
   is CI-diffed precisely so this cannot happen quietly.
-- **The catalogs.** `identifiers.yaml` enforces that a high-specificity entry is
-  checksum-backed; the loader fails otherwise. `ner.yaml`'s header carries a
+- **The catalogs.** A checksum-backed identifier must declare confidence 1.0,
+  and a rule without a checksum must stay below it; the loader fails otherwise.
+  Specificity does not grant that status. `ner.yaml`'s header carries a
   warning about adding digit-shaped entities that is about gateway behaviour,
   not about the file.
 - **Anything under `gateway/`.** Different surface, active work, separate branch.

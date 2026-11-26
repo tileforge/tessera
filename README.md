@@ -130,8 +130,10 @@ make corpus     # regenerates both corpora in evaluation/corpus/ byte-identicall
 make evaluate   # per-type precision/recall/F1 + the Tier 1 recall gate (>= 0.99)
 ```
 
-Checksum-backed identifiers are exact. The model-backed types are not, and the weak rows
-are published rather than trimmed:
+Checksum-backed identifiers are exact. `PHONE_NUMBER` is not one of them: the
+row is international numbers written with `+`, and national numbers and
+extensions are outside that measurement. The model-backed types are not exact,
+and the weak rows are published rather than trimmed:
 
 | Type | Precision | Recall | F1 |
 |---|---|---|---|
@@ -143,6 +145,7 @@ are published rather than trimmed:
 | FR_NIF | 1.000 | 1.000 | 1.000 |
 | FR_NIR | 1.000 | 1.000 | 1.000 |
 | IBAN | 1.000 | 1.000 | 1.000 |
+| PHONE_NUMBER | 1.000 | 1.000 | 1.000 |
 | PERSON | 0.959 | 0.934 | 0.947 |
 | LOCATION | 1.000 | 1.000 | 1.000 |
 | ORG | 0.167 | 0.333 | 0.222 |
