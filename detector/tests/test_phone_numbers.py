@@ -133,6 +133,20 @@ def test_a_trunk_zero_number_keeps_its_labeled_extension() -> None:
     assert text[span.end :].startswith(" now.")
 
 
+@pytest.mark.parametrize(
+    "gap",
+    [
+        f"{' ' * 240}ext. 123",
+        f" ext.{' ' * 240}123",
+    ],
+)
+def test_a_long_gap_around_the_label_keeps_the_base_number(gap: str) -> None:
+    number = "+12025550100"
+    text = f"Call {number}{gap} now."
+    span = _assert_phone(text, number)
+    assert "123" in text[span.end :]
+
+
 def test_cyrillic_and_an_emoji_do_not_move_the_span() -> None:
     text = f"Позвоните 📞 {UK} завтра"
     span = _assert_phone(text, UK)

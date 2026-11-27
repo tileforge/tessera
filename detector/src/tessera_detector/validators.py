@@ -20,10 +20,13 @@ from stdnum.fr import nir as _fr_nir
 
 _SEPARATORS = str.maketrans("", "", " .-")
 # Same explicit labels as phonenumbers' parsing pattern: ext/extension,
-# xt/xtension, доб, anexo. A separator is required, so a glued letter is not
-# an extension. The catalog pattern repeats this suffix and must stay in step.
+# xt/xtension, доб, anexo. Exactly one space is required, so a glued letter
+# is not an extension. A longer gap is not one either: phonenumbers rejects
+# an input longer than 250 characters, and the trailing extension digits
+# would then drop the base number. The catalog pattern repeats this suffix
+# and must stay in step.
 _EXPLICIT_EXTENSION = re.compile(
-    r"(?i)[ ]+(?:ext(?:ension)?|xt(?:ension)?|доб|anexo)[.:]?[ ]*\d{1,20}\Z"
+    r"(?i)[ ](?:ext(?:ension)?|xt(?:ension)?|доб|anexo)[.:]?[ ]?\d{1,20}\Z"
 )
 
 
