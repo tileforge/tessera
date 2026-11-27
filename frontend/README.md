@@ -139,7 +139,8 @@ can still contain undetected personal data.
 
 Catalog rules cover emails, supported financial and tax identifiers, and
 international phone numbers written with `+`. A country is not guessed from
-the text, so national numbers and a `00` prefix are not detected. A labeled
+the text. German national numbers written with a leading `0` are detected.
+National numbers from any other country, and a `00` prefix, are not. A labeled
 extension such as `ext. 123` is masked with the number when a space separates
 the label. A label glued to the digits, such as `+12025550100ext.123`, stays
 outside this coverage. A match does not mean a subscriber exists, and the check
