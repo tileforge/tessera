@@ -242,6 +242,8 @@ describe('local detector playground', () => {
     expect(coverage).toHaveTextContent(/international phone numbers written with \+/)
     expect(coverage).toHaveTextContent(/national numbers are outside this coverage/i)
     expect(coverage).toHaveTextContent(/ext\. 123 is masked with the number/)
+    expect(coverage).toHaveTextContent(/when a space separates the label/)
+    expect(coverage).toHaveTextContent(/\+12025550100ext\.123/)
     await user.click(screen.getByRole('button', { name: /Clear/i }))
     expect(coverage).toBeVisible()
   })
