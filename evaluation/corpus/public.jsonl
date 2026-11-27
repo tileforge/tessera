@@ -132,7 +132,9 @@
 {"entities": [{"end": 33, "entity_type": "PHONE_NUMBER", "start": 17}], "id": "phone-0001", "lang": "de", "text": "Erreichbar unter +44 20 7946 0958."}
 {"entities": [{"end": 22, "entity_type": "PHONE_NUMBER", "start": 5}, {"end": 42, "entity_type": "PHONE_NUMBER", "start": 26}], "id": "phone-0002", "lang": "mixed", "text": "Call +1 (202) 555-0100 or +44.20.7946.0999 today."}
 {"entities": [{"end": 33, "entity_type": "PHONE_NUMBER", "start": 12}], "id": "phone-0003", "lang": "fr", "text": "Composez le +12025550101 ext. 123."}
+{"entities": [{"end": 27, "entity_type": "PHONE_NUMBER", "start": 17}], "id": "phone-0004", "lang": "de", "text": "Erreichbar unter 030 123456."}
 {"entities": [], "id": "phone-clean-0000", "lang": "clean", "text": "Appelez le 202-555-0100 dans la journée."}
 {"entities": [], "id": "phone-clean-0001", "lang": "clean", "text": "Nationale Form 020 7946 0958."}
 {"entities": [], "id": "phone-clean-0002", "lang": "clean", "text": "Prefix 00 1 202 555 0100 is not international form."}
 {"entities": [], "id": "phone-clean-0003", "lang": "clean", "text": "Date 2026-11-25, order 12345678901234."}
+{"entities": [], "id": "phone-clean-0004", "lang": "clean", "text": "Prefix 0049 30 123456 is not national form."}

@@ -39,17 +39,30 @@ def _credit_card(value: str) -> bool:
     return 14 <= len(digits) <= 19 and digits.isdigit() and luhn.is_valid(digits)
 
 
+def _split_explicit_extension(value: str) -> tuple[str, str]:
+    suffix = _EXPLICIT_EXTENSION.search(value)
+    if suffix is None:
+        return value, ""
+    extension = "".join(ch for ch in suffix.group(0) if ch.isdigit())
+    return value[: suffix.start()], extension
+
+
 def _phone_number(value: str) -> bool:
     # No checksum exists. `is_possible_number` is not enough: a reserved range
     # can be a plausible length and still not be a valid number.
-    if not value.startswith("+") or any(ch in "\r\n" for ch in value):
+    if any(ch in "\r\n" for ch in value):
         return False
-    extension = ""
-    base = value
-    suffix = _EXPLICIT_EXTENSION.search(value)
-    if suffix:
-        extension = "".join(ch for ch in suffix.group(0) if ch.isdigit())
-        base = value[: suffix.start()]
+    if value.startswith("+"):
+        return _international_phone(value)
+    # Trunk 0 is the German national form. The region is the constant below,
+    # not a guess from the surrounding text. A 00 prefix is not that form.
+    if value.startswith("0") or value.startswith("(0"):
+        return _german_national_phone(value)
+    return False
+
+
+def _international_phone(value: str) -> bool:
+    base, extension = _split_explicit_extension(value)
     if any(ch.isalpha() for ch in base):
         return False
     digit_count = 0
@@ -83,6 +96,39 @@ def _phone_number(value: str) -> bool:
     if e164_digits.startswith(country):
         trunk = country + "0" + e164_digits[len(country) :]
     if digits != e164_digits and digits != trunk:
+        return False
+    return phonenumbers.is_valid_number(parsed)
+
+
+def _german_national_phone(value: str) -> bool:
+    if value.startswith("00") or value.startswith("(00"):
+        return False
+    base, extension = _split_explicit_extension(value)
+    if any(ch.isalpha() for ch in base):
+        return False
+    digit_count = 0
+    separators = 0
+    for ch in base:
+        if ch.isdigit():
+            digit_count += 1
+        elif ch in " .-()/":
+            separators += 1
+        else:
+            return False
+    # Trunk 0 plus an NSN of 4 to 15 digits. Extra digits fail the candidate
+    # rather than a shorter slice of it.
+    if not 5 <= digit_count <= 16 or separators > 16:
+        return False
+    try:
+        parsed = phonenumbers.parse(value, "DE")
+    except phonenumbers.NumberParseException:
+        return False
+    if (parsed.extension or "") != extension or parsed.country_code != 49:
+        return False
+    if phonenumbers.region_code_for_number(parsed) != "DE":
+        return False
+    digits = "".join(ch for ch in base if ch.isdigit())
+    if digits != "0" + str(parsed.national_number):
         return False
     return phonenumbers.is_valid_number(parsed)
 
