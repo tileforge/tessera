@@ -403,8 +403,8 @@ _PHONE_DOCUMENTS: list[dict[str, object]] = [
         "phone-0003",
         "fr",
         "Composez le ",
-        "+12025550101",
-        " ext. 123.",
+        "+12025550101 ext. 123",
+        ".",
         annotate=True,
     ),
     _phone_document(

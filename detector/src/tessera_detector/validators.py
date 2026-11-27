@@ -5,6 +5,7 @@ the identifier type? A failed checksum drops the candidate entirely — it never
 lowers confidence. Validators must not raise on garbage input.
 """
 
+import re
 from collections.abc import Callable
 
 import phonenumbers
@@ -18,6 +19,12 @@ from stdnum.fr import nif as _fr_nif
 from stdnum.fr import nir as _fr_nir
 
 _SEPARATORS = str.maketrans("", "", " .-")
+# Same explicit labels as phonenumbers' parsing pattern: ext/extension,
+# xt/xtension, доб, anexo. A separator is required, so a glued letter is not
+# an extension. The catalog pattern repeats this suffix and must stay in step.
+_EXPLICIT_EXTENSION = re.compile(
+    r"(?i)[ ]+(?:ext(?:ension)?|xt(?:ension)?|доб|anexo)[.:]?[ ]*\d{1,20}\Z"
+)
 
 
 def _clean(value: str) -> str:
@@ -32,11 +39,19 @@ def _credit_card(value: str) -> bool:
 def _phone_number(value: str) -> bool:
     # No checksum exists. `is_possible_number` is not enough: a reserved range
     # can be a plausible length and still not be a valid number.
-    if not value.startswith("+") or any(ch.isalpha() or ch in "\r\n" for ch in value):
+    if not value.startswith("+") or any(ch in "\r\n" for ch in value):
+        return False
+    extension = ""
+    base = value
+    suffix = _EXPLICIT_EXTENSION.search(value)
+    if suffix:
+        extension = "".join(ch for ch in suffix.group(0) if ch.isdigit())
+        base = value[: suffix.start()]
+    if any(ch.isalpha() for ch in base):
         return False
     digit_count = 0
     separators = 0
-    for ch in value[1:]:
+    for ch in base[1:]:
         if ch.isdigit():
             digit_count += 1
         elif ch in " .-()":
@@ -44,19 +59,21 @@ def _phone_number(value: str) -> bool:
         else:
             return False
     # E.164 holds at most 15 digits. Extra digits must fail the whole candidate:
-    # phonenumbers will not be asked to accept a shorter slice of it.
+    # phonenumbers will not be asked to accept a shorter slice of it. Digits
+    # of a labeled extension are not part of that count.
     if not 1 <= digit_count <= 15 or separators > 16:
         return False
     try:
         parsed = phonenumbers.parse(value, None)
     except phonenumbers.NumberParseException:
         return False
-    # `parse` keeps a valid base number and drops an extension. It also drops
-    # one trunk `0` written after the country code (`+44 (0)20…`). The
-    # candidate is accepted when its digits are the E.164 digits, or those
+    if (parsed.extension or "") != extension:
+        return False
+    # `parse` drops one trunk `0` written after the country code (`+44 (0)20…`).
+    # The base is accepted when its digits are the E.164 digits, or those
     # digits with that single trunk zero. Any other extra digit rejects it.
     e164 = phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.E164)
-    digits = "".join(ch for ch in value if ch.isdigit())
+    digits = "".join(ch for ch in base if ch.isdigit())
     e164_digits = e164[1:]
     country = str(parsed.country_code)
     trunk = ""
