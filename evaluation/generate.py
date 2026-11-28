@@ -370,7 +370,8 @@ def _phone_document(
     return {"id": doc_id, "lang": lang, "text": text, "entities": entities}
 
 
-# Reserved examples (NANPA 555-01xx, Ofcom 020 7946 0xxx), not subscriber numbers.
+# Reserved examples (NANPA 555-01xx, Ofcom 020 7946 0xxx, and the published
+# phonenumbers example for Germany), not subscriber numbers.
 # Drawn from a fixed list so this does not consume the identifier RNG: a draw
 # there would reshuffle every other value in the corpus.
 _PHONE_DOCUMENTS: list[dict[str, object]] = [
@@ -408,6 +409,14 @@ _PHONE_DOCUMENTS: list[dict[str, object]] = [
         annotate=True,
     ),
     _phone_document(
+        "phone-0004",
+        "de",
+        "Erreichbar unter ",
+        "030 123456",
+        ".",
+        annotate=True,
+    ),
+    _phone_document(
         "phone-clean-0000",
         "clean",
         "Appelez le ",
@@ -437,6 +446,14 @@ _PHONE_DOCUMENTS: list[dict[str, object]] = [
         "Date ",
         "2026-11-25",
         ", order 12345678901234.",
+        annotate=False,
+    ),
+    _phone_document(
+        "phone-clean-0004",
+        "clean",
+        "Prefix ",
+        "0049 30 123456",
+        " is not national form.",
         annotate=False,
     ),
 ]

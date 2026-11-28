@@ -131,10 +131,11 @@ make evaluate   # per-type precision/recall/F1 + the Tier 1 recall gate (>= 0.99
 ```
 
 Checksum-backed identifiers are exact. `PHONE_NUMBER` is not one of them: the
-row is international numbers written with `+`. A labeled extension such as
-`ext. 123` is part of that span. National numbers, and a letter glued to the
-number, are outside that measurement. The model-backed types are not exact,
-and the weak rows are published rather than trimmed:
+row is international numbers written with `+` and German national numbers
+written with a leading `0`. A labeled extension such as `ext. 123` is part of
+that span. National numbers from any other country, a `00` prefix, and a
+letter glued to the number are outside that measurement. The model-backed
+types are not exact, and the weak rows are published rather than trimmed:
 
 | Type | Precision | Recall | F1 |
 |---|---|---|---|

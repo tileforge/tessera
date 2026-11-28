@@ -1,8 +1,11 @@
 """International phone numbers: catalog candidate, phonenumbers verdict, original offsets.
 
-Reserved examples only — NANPA 555-0100..0199 and Ofcom 020 7946 0xxx.
-The 07700 900xxx drama range is only "possible" in phonenumbers, not valid.
-National numbers and a 00 prefix are outside this version.
+Reserved examples only — NANPA 555-0100..0199, Ofcom 020 7946 0xxx, and the
+published phonenumbers examples for Germany. The 07700 900xxx drama range is
+only "possible" in phonenumbers, not valid.
+A German national number needs a leading trunk 0 and is parsed as region DE.
+The surrounding text does not choose a country. A 00 prefix and a national
+number from any other country stay outside this version.
 A labeled extension is part of the span. A letter glued on, including x123, is not.
 """
 
@@ -16,6 +19,9 @@ from tessera_detector.spans import Span
 
 US = "+1 202-555-0100"
 UK = "+44 20 7946 0958"
+# phonenumbers.example_number("DE") and the mobile example, national format.
+DE = "030 123456"
+DE_MOBILE = "01512 3456789"
 
 
 def _detector() -> Detector:
@@ -101,6 +107,15 @@ def test_a_number_at_the_end_of_the_line_is_closed() -> None:
         "Call +1 202-555-0100x123 now.",
         "Call +12025550100ext.123 now.",
         "Call +1 202\n555-0100 today.",
+        "Call 0049 30 123456 today.",
+        "Call 004930123456 today.",
+        "Call 00 49 30 123456 today.",
+        "Call 30 123456 today.",
+        "Call 030 123456 123456789 today.",
+        "Call 030/123456/123456789 today.",
+        "Call 0123456789 today.",
+        "Call 030123456ext.12 an.",
+        "Call 16412345 today.",
     ],
 )
 def test_non_international_and_overlong_runs_are_not_phones(text: str) -> None:
@@ -131,6 +146,66 @@ def test_a_trunk_zero_number_keeps_its_labeled_extension() -> None:
     text = f"Call {number} now."
     span = _assert_phone(text, number)
     assert text[span.end :].startswith(" now.")
+
+
+@pytest.mark.parametrize(
+    "number",
+    [
+        "030 123456",
+        "030123456",
+        "030/123456",
+        "030-123456",
+        "(030) 123456",
+        "(030)123456",
+        "01512 3456789",
+        "015123456789",
+        "0800 1234567890",
+        "0180 1 2345",
+    ],
+)
+def test_a_german_national_number_is_a_phone(number: str) -> None:
+    text = f"Ruf {number} an."
+    span = _assert_phone(text, number)
+    assert text[span.end :].startswith(" an.")
+
+
+def test_a_german_national_number_keeps_its_labeled_extension() -> None:
+    number = f"{DE} ext. 12"
+    text = f"Ruf {number} an."
+    span = _assert_phone(text, number)
+    assert text[span.end :].startswith(" an.")
+
+
+def test_the_german_example_in_international_form_stays_a_phone() -> None:
+    number = "+49 30 123456"
+    text = f"Ruf {number} an."
+    span = _assert_phone(text, number)
+    assert text[span.end :].startswith(" an.")
+
+
+def test_a_german_number_and_an_international_number_stay_separate() -> None:
+    text = f"DE {DE} and US {US}."
+    assert [text[span.start : span.end] for span in _phones(text)] == [DE, US]
+
+
+def test_a_german_number_at_the_end_of_the_line_is_closed() -> None:
+    text = f"Ruf {DE}"
+    span = _assert_phone(text, DE)
+    assert span.end == len(text)
+
+
+@pytest.mark.parametrize(
+    "gap",
+    [
+        f"{' ' * 240}ext. 123",
+        f" ext.{' ' * 240}123",
+    ],
+)
+def test_a_long_gap_around_the_label_keeps_the_base_number(gap: str) -> None:
+    number = "+12025550100"
+    text = f"Call {number}{gap} now."
+    span = _assert_phone(text, number)
+    assert "123" in text[span.end :]
 
 
 def test_cyrillic_and_an_emoji_do_not_move_the_span() -> None:
